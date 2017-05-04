@@ -1,0 +1,15 @@
+{
+  "name": "mo-html",
+  "license": "MIT",
+  "classPath": "src",
+  "tags": ["uhu", "uhx", "mo", "lexer", "ast", "parser", "html"],
+  "description": "A HTML lexer and parser.",
+  "contributors": ["skial"],
+  "releasenote": "Initial Release",
+  "version": "0.0.1-alpha",
+  "url": "https://github.com/skial/mo-html",
+  "dependencies": {
+	"mo": "",
+    "utest": ""
+  }
+}
