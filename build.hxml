@@ -20,3 +20,27 @@
 --next
 
 -js bin/html.js
+
+--next
+
+-python bin/py/html.py
+
+#--next
+
+# broken
+#-java bin/java
+
+--next
+
+-cs bin/cs
+
+#--next
+
+# not sure what the error is on about
+#-lua bin/html.lua
+
+#--next
+
+# boot error
+#-D php7
+#-php bin/php

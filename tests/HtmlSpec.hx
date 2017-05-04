@@ -33,7 +33,10 @@ using Lambda;
 		
 		try while ( true ) {
 			tokens.push( lexer.token( Lexer.root ) );
-		} catch (_e:Eof) { } catch (_e:Dynamic) {
+            
+		} catch (e:Eof) { 
+
+        } catch (e:Any) {
 			
 		}
 		
