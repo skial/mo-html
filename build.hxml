@@ -1,0 +1,22 @@
+-cp src
+-cp tests
+
+-lib mo
+-lib utest
+
+-resource res/input.html@input.html
+-resource res/be_paragraph.html@be_paragraph.html
+
+-main Main
+
+-dce full
+
+-D analyzer-optimize
+
+--each
+
+-neko bin/html.n
+
+--next
+
+-js bin/html.js
