@@ -23,6 +23,11 @@
 
 --next
 
+-lib hxnodejs
+-js bin/html.node.js
+
+--next
+
 -python bin/py/html.py
 
 #--next
@@ -30,9 +35,9 @@
 # broken
 #-java bin/java
 
---next
+#--next
 
--cs bin/cs
+#-cs bin/cs
 
 #--next
 

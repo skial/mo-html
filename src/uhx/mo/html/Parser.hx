@@ -27,7 +27,7 @@ import uhx.mo.html.Lexer;
  * ...
  * @author Skial Bainn
  */
-class Html {
+class Parser {
 	
 	private var tab:Char = '';
 
