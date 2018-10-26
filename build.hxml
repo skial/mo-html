@@ -30,6 +30,10 @@
 
 -python bin/py/html.py
 
+--next
+
+-hl bin/html.hl
+
 #--next
 
 # broken

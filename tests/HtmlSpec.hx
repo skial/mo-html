@@ -1,13 +1,9 @@
 package ;
 
-//import dtx.DOMCollection;
-//import dtx.Tools;
 import haxe.io.Eof;
-//import dtx.DOMType;
 import uhx.mo.Token;
 import utest.Assert;
 import byte.ByteData;
-//import dtx.mo.DOMNode;
 import uhx.mo.html.Lexer;
 import hxparse.UnexpectedChar;
 
@@ -344,24 +340,14 @@ using Lambda;
 		Assert.equals( 0, t.length );
 	}
 	
-	/*public function testWhitespace() {
+	public function testWhitespace() {
 		var t = parse( '<a></a> \r\n\t <a> \r\n\t <b></b> \r\n\t </a>' );
 		
 		Assert.equals( 3, t.length );
 		Assert.isTrue( t[0].match( Keyword(Tag( { name:'a' } )) ) );
 		Assert.isTrue( t[1].match( Keyword(Text( { tokens:' \r\n\t ' } )) ) );
 		Assert.isTrue( t[2].match( Keyword(Tag( { name:'a' } )) ) );
-		
-		#if !js
-		var collection:dtx.DOMCollection = new dtx.DOMCollection( cast t );
-		var a:DOMNode = cast collection.getNode(2);
-		
-		Assert.equals( 3, a.childNodes.length );
-		Assert.isTrue( a.childNodes[0].token().match( Keyword(Text( { tokens:' \r\n\t ' } )) ) );
-		Assert.isTrue( a.childNodes[1].token().match( Keyword(Tag( { name:'b' } )) ) );
-		Assert.isTrue( a.childNodes[2].token().match( Keyword(Text( { tokens:' \r\n\t ' } )) ) );
-		#end
-	}*/
+	}
 	
 	public function testHtmlCategories() {
 		var t = parse( '<html><link /><style></style><div></div><nav></nav><h1></h1><script></script><em></em><svg></svg><details /><a></a><img /><skial /></html>' );
@@ -1144,63 +1130,6 @@ using Lambda;
 				
 		}
 		
-		#if !js
-		/*// Low level removal
-		var d:DOMNode = parse( '<parent><a b-="1" c+="2"></a></parent>' )[0];
-		Assert.equals( 1, d.childNodes.length );
-		
-		var f = d.firstChild;
-		d.removeChild( d.firstChild );
-		
-		Assert.equals( 0, d.childNodes.length );
-		
-		// Library removal
-		var c = '<parent><a b-="1" c+="2"></a></parent>'.parse();
-		
-		Assert.equals( 1, c.children().length );
-		
-		c.children().remove();
-		
-		Assert.equals( 0, c.children().length );
-		
-		// Library removal, again
-		var c = '<parent><a b-="1" c+="2"></a></parent>'.parse();
-		
-		Assert.equals( 1, c.children().length );
-		
-		var delete = new DOMCollection();
-		for (child in c.children()) delete.add( child );
-		delete.remove();
-		
-		Assert.equals( 0, c.children().length );*/
-		#end
 	}
-	
-	/*public function testMacro_parse() {
-		Assert.equals('<ul>OneTwo</ul>', macroValue());
-	}
-	
-	private static macro function macroValue() {
-		//HtmlLexer.openTags = [];
-		var bytes = ByteData.ofString( "<doc><ul><li>One</li><li class='special'>Two</li></ul></doc>" );
-		var lexer = new HtmlLexer( bytes, 'macro-html' );
-		var tokens:Array<DOMNode> = [];
-		
-		try while ( true ) {
-			var token = lexer.token( HtmlLexer.root );
-			tokens.push( token );
-		} catch (_e:Eof) { } catch (_e:Dynamic) {
-			haxe.macro.Context.fatalError( '$_e', haxe.macro.Context.currentPos() );
-		}
-		
-		var value = [for (t in tokens) t.toString()].join(' ');
-		return macro $v{ value };
-	}*/
-	
-	/*public function testAmazon_03_09_2014() {
-		var t = parse( haxe.Resource.getString('amazon.html') );
-		
-		//untyped console.log( t );
-	}*/	
 	
 }
