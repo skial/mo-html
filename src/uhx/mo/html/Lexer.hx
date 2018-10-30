@@ -4,12 +4,12 @@ import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
-import hxparse.Lexer;
 import haxe.EnumTools;
 import hxparse.Ruleset;
 import hxparse.Position;
 import haxe.ds.StringMap;
 import hxparse.UnexpectedChar;
+import hxparse.Lexer as HxparseLexer;
 
 using StringTools;
 using uhx.mo.html.Lexer;
@@ -232,7 +232,7 @@ enum HtmlKeywords {
  * @author Skial Bainn
  */
 
-class Lexer extends hxparse.Lexer {
+class Lexer extends HxparseLexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
@@ -241,19 +241,19 @@ class Lexer extends hxparse.Lexer {
 	public var parent:Void->Token<HtmlKeywords> = null;
 	public var openTags:Array<HtmlRef> = [];
 	
-	public static var openClose = Mo.rules( [
-	'<' => lexer.token( tags ),
-	'>' => GreaterThan,
-	'[^<>]+' => Keyword( HtmlKeywords.Text(new Ref( lexer.current, lexer.parent )) ),
+	public static var openClose:Ruleset<Lexer, Token<HtmlKeywords>> = Mo.rules( [
+	'<' => lexer -> lexer.token( tags ),
+	'>' => _ -> GreaterThan,
+	'[^<>]+' => lexer -> Keyword( HtmlKeywords.Text(new Ref( lexer.current, lexer.parent )) ),
 	] );
 	
-	public static var tags = Mo.rules( [ 
-	' +' => Space(lexer.current.length),
-	'\r' => Carriage,
-	'\n' => Newline,
-	'\t' => Tab(1),
-	'/>' => lexer.token( openClose ),
-	'[!?]' => {
+	public static var tags:Ruleset<Lexer, Token<HtmlKeywords>> = Mo.rules( [ 
+	' +' => lexer -> Space(lexer.current.length),
+	'\r' => _ -> Carriage,
+	'\n' => _ -> Newline,
+	'\t' => _ -> Tab(1),
+	'/>' => lexer -> lexer.token( openClose ),
+	'[!?]' => lexer -> {
 		var tag = '';
 		var attrs = [];
 		var tokens = [];
@@ -288,10 +288,10 @@ class Lexer extends hxparse.Lexer {
 		
 		Keyword( Instruction( new InstructionRef( attrs, aComment, lexer.parent ) ) );
 	},
-	'/[^\r\n\t <>]+>' => {
+	'/[^\r\n\t <>]+>' => lexer -> {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
 	},
-	'[a-zA-Z0-9:]+' => {
+	'[a-zA-Z0-9:]+' => lexer -> {
 		var tokens:Tokens = [];
 		var tag:String = lexer.current;
 		var categories = tag.categories();
@@ -379,9 +379,9 @@ class Lexer extends hxparse.Lexer {
 	},
 	] );
 	
-	public static var attributes = Mo.rules( [
-	'[ \r\n\t]' => lexer.token( attributes ),
-	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => {
+	public static var attributes:Ruleset<Lexer, Array<String>> = Mo.rules( [
+	'[ \r\n\t]' => lexer -> lexer.token( attributes ),
+	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => lexer -> {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
@@ -392,21 +392,21 @@ class Lexer extends hxparse.Lexer {
 		
 		[key, value];
 	},
-	'[^\r\n\t /=>]+' => [lexer.current, '']
+	'[^\r\n\t /=>]+' => lexer -> [lexer.current, '']
 	] );
 	
-	public static var attributesValue = Mo.rules( [
-	'"[^"]*"' => lexer.current.substring(1, lexer.current.length-1),
-	'\'[^\']*\'' => lexer.current.substring(1, lexer.current.length-1),
-	'[^ "\'><]+' => lexer.current,
+	public static var attributesValue:Ruleset<Lexer, String> = Mo.rules( [
+	'"[^"]*"' => lexer -> lexer.current.substring(1, lexer.current.length-1),
+	'\'[^\']*\'' => lexer -> lexer.current.substring(1, lexer.current.length-1),
+	'[^ "\'><]+' => lexer -> lexer.current,
 	] );
 	
-	public static var instructions = Mo.rules( [
-	'[a-zA-Z0-9]+' => lexer.current,
-	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
-	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
-	'[\r\n\t ]+' => lexer.current,
-	'\\[' => {
+	public static var instructions:Ruleset<Lexer, String> = Mo.rules( [
+	'[a-zA-Z0-9]+' => lexer -> lexer.current,
+	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer -> lexer.current,
+	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer -> lexer.current,
+	'[\r\n\t ]+' => lexer -> lexer.current,
+	'\\[' => lexer -> {
 		var value = '';
 		var original = lexer.current;
 		
@@ -428,7 +428,7 @@ class Lexer extends hxparse.Lexer {
 		}
 		value;
 	},
-	'<' => {
+	'<' => lexer -> {
 		var value = '';
 		var counter = 0;
 		
@@ -455,11 +455,11 @@ class Lexer extends hxparse.Lexer {
 		}
 		'<$value>';
 	},
-	'"' => {
+	'"' => lexer -> {
 		var value = '';
 		
 		try while (true) {
-			var token = lexer.token( Mo.rules([ '"' => '"', '[^"]+' => lexer.current ])  );
+			var token = lexer.token( (Mo.rules([ '"' => _ -> '"', '[^"]+' => lexer -> lexer.current ]):Ruleset<Lexer, String>)  );
 			
 			switch (token) {
 				case '"':
@@ -477,11 +477,11 @@ class Lexer extends hxparse.Lexer {
 	}
 	] );
 	
-	public static var instructionText = Mo.rules( [
-	'[^\\]<>]+' => lexer.current,
-	'\\]' => ']',
-	'<' => '<',
-	'>' => '>'
+	public static var instructionText:Ruleset<Lexer, String> = Mo.rules( [
+	'[^\\]<>]+' => lexer -> lexer.current,
+	'\\]' => _ -> ']',
+	'<' => _ -> '<',
+	'>' => _ -> '>'
 	] );
 	
 	public static var root = openClose;
@@ -600,17 +600,17 @@ class Lexer extends hxparse.Lexer {
 		return position;
 	}
 	
-	private static function scriptedRule(tag:String) return Mo.rules( [
-	'</[ ]*$tag[ ]*>' => {
+	private static function scriptedRule(tag:String):Ruleset<Lexer, Token<HtmlKeywords>> return Mo.rules( [
+	'</[ ]*$tag[ ]*>' => lexer -> {
 		Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) );
 	},
-	'[^\r\n\t<]+' => {
+	'[^\r\n\t<]+' => lexer -> {
 		Const(CString( lexer.current ));
 	},
-	'[\r\n\t]+' => {
+	'[\r\n\t]+' => lexer -> {
 		Const(CString( lexer.current ));
 	},
-	'<' => {
+	'<' => lexer -> {
 		Const(CString( lexer.current ));
 	},
 	] );
