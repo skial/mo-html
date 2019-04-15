@@ -4,32 +4,44 @@ import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
 import byte.ByteData;
+import hxparse.Lexer;
 import haxe.EnumTools;
 import hxparse.Ruleset;
 import hxparse.Position;
 import haxe.ds.StringMap;
 import hxparse.UnexpectedChar;
-import hxparse.Lexer as HxparseLexer;
+//import be.ds.vertices.Vertex;
+//import be.ds.graphs.directed.EdgeGraph;
+import uhx.mo.html.HtmlGraph;
+//import uhx.mo.html.HtmlGraph.HtmlVertex as Vertex;
 
 using StringTools;
 using uhx.mo.html.Lexer;
+using be.ds.util.DotGraph;
 
 private typedef Tokens = Array<Token<HtmlKeywords>>;
 
-class Ref<Child> {
+class Ref<Child> implements be.ds.vertices.IVertex<Child> {
 	
+	public var value:Child;
 	public var tokens:Child;
-	public var parent:Void->Token<HtmlKeywords>;
+	public var complete:Bool = true;
+	public var id(default, null):Int = be.ds.util.Counter.next();
+	//public var parent:GraphNode<HtmlKeywords>;
 	
-	public function new(tokens:Child, ?parent:Void->Token<HtmlKeywords>) {
-		this.tokens = tokens;
-		this.parent = parent == null ? function() return null : parent;
+	public function new(tokens:Child/*, ?parent:GraphNode<HtmlKeywords>*/) {
+		this.value = this.tokens = tokens;
+		//this.parent = parent;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	public function clone(deep:Bool) {
-		return new Ref<Child>(tokens, null);
+		return new Ref<Child>(tokens/*, null*/);
+	}
+
+	public inline function compare(other:be.ds.vertices.IVertex<Child>):Bool {
+		return this.id == other.id;
 	}
 
 	
@@ -39,15 +51,15 @@ class InstructionRef extends Ref<Array<String>> {
 	
 	public var isComment(default, null):Bool;
 	
-	public function new(tokens:Array<String>, ?isComment:Bool = true, ?parent:Void->Token<HtmlKeywords>) {
-		super(tokens, parent);
+	public function new(tokens:Array<String>, ?isComment:Bool = true/*, ?parent:GraphNode<HtmlKeywords>*/) {
+		super(tokens/*, parent*/);
 		this.isComment = isComment;
 	}
 	
 	// @see https://developer.mozilla.org/en-US/docs/Web/API/Node.cloneNode
 	// `parent` should be null as the element isnt attached to any document.
 	override public function clone(deep:Bool) {
-		return new InstructionRef(deep ? tokens.copy() : tokens, isComment, null);
+		return new InstructionRef(deep ? tokens.copy() : tokens, isComment/*, null*/);
 	}
 	
 }
@@ -55,13 +67,13 @@ class InstructionRef extends Ref<Array<String>> {
 class HtmlRef extends Ref<Tokens> {
 	
 	public var name:String;
-	public var complete:Bool = false;
+	//public var complete:Bool = false;
 	public var selfClosing:Bool = false;
 	public var categories:Array<Category> = [];
 	public var attributes:StringMap<String> = new StringMap();
 	
-	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, ?parent:Void->Token<HtmlKeywords>, ?complete:Bool = false, ?selfClosing:Bool = false) {
-		super(tokens, parent);
+	public function new(name:String, attributes:StringMap<String>, categories:Array<Category>, tokens:Tokens, /*?parent:GraphNode<HtmlKeywords>,*/ ?complete:Bool = false, ?selfClosing:Bool = false) {
+		super(tokens/*, parent*/);
 		this.name = name;
 		this.complete = complete;
 		this.attributes = attributes;
@@ -77,7 +89,7 @@ class HtmlRef extends Ref<Tokens> {
 			[for (k in attributes.keys()) k => attributes.get(k)], 
 			categories.copy(), 
 			deep ? [/*for (t in tokens) (t:dtx.mo.DOMNode).cloneNode( deep )*/] : [for (t in tokens) t], 
-			null, 
+			//null, 
 			complete,
 			selfClosing
 		);
@@ -232,28 +244,39 @@ enum HtmlKeywords {
  * @author Skial Bainn
  */
 
-class Lexer extends HxparseLexer {
+class Lexer extends hxparse.Lexer {
 
 	public function new(content:ByteData, name:String) {
 		super( content, name );
 	}
 	
-	public var parent:Void->Token<HtmlKeywords> = null;
+	public var graph:HtmlGraph<HtmlKeywords> = new HtmlGraph();
+	//public var parent:Null<Vertex<HtmlKeywords>> = null;
+	public var parent:Null<HtmlRef> = null;
+	//public var _parent:Void->Token<HtmlKeywords> = null;
 	public var openTags:Array<HtmlRef> = [];
 	
-	public static var openClose:Ruleset<Lexer, Token<HtmlKeywords>> = Mo.rules( [
-	'<' => lexer -> lexer.token( tags ),
-	'>' => _ -> GreaterThan,
-	'[^<>]+' => lexer -> Keyword( HtmlKeywords.Text(new Ref( lexer.current, lexer.parent )) ),
+	public static var openClose = Mo.rules( [
+	'<' => lexer.token( tags ),
+	'>' => GreaterThan,
+	'[^<>]+' => {
+		var ref = new Ref( lexer.current/*, lexer.parent*/ );
+		var enm = HtmlKeywords.Text( ref );
+		var node = new Vertex( enm );
+		lexer.graph.addVertex( node );
+		if (lexer.parent != null) lexer.graph.addEdge(lexer.parent, node);
+		//Keyword( enm );
+		Ignore;
+	}
 	] );
 	
-	public static var tags:Ruleset<Lexer, Token<HtmlKeywords>> = Mo.rules( [ 
-	' +' => lexer -> Space(lexer.current.length),
-	'\r' => _ -> Carriage,
-	'\n' => _ -> Newline,
-	'\t' => _ -> Tab(1),
-	'/>' => lexer -> lexer.token( openClose ),
-	'[!?]' => lexer -> {
+	public static var tags = Mo.rules( [ 
+	' +' => Space(lexer.current.length),
+	'\r' => Carriage,
+	'\n' => Newline,
+	'\t' => Tab(1),
+	'/>' => lexer.token( openClose ),
+	'[!?]' => {
 		var tag = '';
 		var attrs = [];
 		var tokens = [];
@@ -278,32 +301,35 @@ class Lexer extends HxparseLexer {
 				}
 				
 				tokens.push( token );
-			} catch (e:Dynamic) { };
+			} catch (e:Any) { };
 			
-		} catch (e:Dynamic) {
+		} catch (e:Any) {
 			trace( e );
+
 		}
 		
 		if (!aComment && attrs[attrs.length -1] == '?') attrs = attrs.slice(0, attrs.length - 1);
 		
-		Keyword( Instruction( new InstructionRef( attrs, aComment, lexer.parent ) ) );
+		var ref = new InstructionRef( attrs, aComment/*, lexer.parent*/ );
+		var enm = Instruction( ref );
+		//var node = new Vertex( enm );
+		var node = ref;
+		lexer.graph.addVertex( node );
+		if (lexer.parent != null) lexer.graph.addEdge(lexer.parent, node); 
+		//Keyword( enm );
+		Ignore;
 	},
-	'/[^\r\n\t <>]+>' => lexer -> {
+	'/[^\r\n\t <>]+>' => {
 		Keyword( End( lexer.current.substring(1, lexer.current.length -1) ) );
 	},
-	'[a-zA-Z0-9:]+' => lexer -> {
+	'[a-zA-Z0-9:]+' => {
 		var tokens:Tokens = [];
 		var tag:String = lexer.current;
 		var categories = tag.categories();
 		var model = tag.model();
 		var attrs = new StringMap<String>();
 		
-		var isVoid = 
-		if (model == Model.Empty) {
-			true;
-		} else {
-			false;
-		}
+		var isVoid = model == Model.Empty;
 		
 		try while (true) {
 			var token:Array<String> = lexer.token( attributes );
@@ -322,38 +348,37 @@ class Lexer extends HxparseLexer {
 						case Keyword(HtmlKeywords.Text(e)) if (e.tokens.trim() == '/'):
 							continue;
 							
-						case Keyword(HtmlKeywords.Text( { tokens:'/' } )), Space(_):
+						/*case Keyword(HtmlKeywords.Text( { tokens:'/' } )), Space(_):
 							continue;
-							
-						case GreaterThan:
-							break;
-							
-						case _:
+						*/
+						case GreaterThan, _:
 							break;
 					}
-				} catch (e:Dynamic) {
+				} catch (e:Any) {
 					trace( e );
-				};
+
+				}
 				
 			} else if (e.char == '>') {
 				untyped lexer.pos++;
+
 			}
 			
-			
-		} catch (e:Dynamic) {
-			
-		}
+		} catch (e:Any) {}
 		
 		var first = lexer.openTags.length == 0;
 		var ref = new HtmlRef(
 			tag, 
 			attrs,
 			categories, 
-			tokens,
-			lexer.parent
+			tokens/*,
+			lexer.parent*/
 		);
 		
 		var position = -1;
+		var enm = Tag(ref);
+		var node = new Vertex( enm );
+		lexer.graph.addVertex( node );
 		
 		if (!isVoid) {
 			
@@ -362,7 +387,7 @@ class Lexer extends HxparseLexer {
 					position = buildMetadata( ref, lexer );
 					
 				case _:
-					position = buildChildren( ref, lexer );
+					position = buildChildren( ref, node, lexer );
 					
 			}
 			
@@ -375,38 +400,41 @@ class Lexer extends HxparseLexer {
 		if (first && ref.categories.indexOf( Category.Root ) == -1) ref.categories.push( Category.Root );
 		ref.selfClosing = isVoid;
 		
-		Keyword( Tag(ref) );
+		//if (lexer.parent != null) lexer.graph.addSingleArc(lexer.parent, node);
+
+		//Keyword( enm );
+		Ignore;
 	},
 	] );
 	
-	public static var attributes:Ruleset<Lexer, Array<String>> = Mo.rules( [
-	'[ \r\n\t]' => lexer -> lexer.token( attributes ),
-	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => lexer -> {
+	public static var attributes = Mo.rules( [
+	'[ \r\n\t]' => lexer.token( attributes ),
+	'[^\r\n\t /=>]+[\r\n\t ]*=[\r\n\t ]*' => {
 		var index = lexer.current.indexOf('=');
 		var key = lexer.current.substring(0, index).rtrim();
 		var value = try {
 			lexer.token( attributesValue );
-		} catch (e:Dynamic) {
+		} catch (e:Any) {
 			'';
 		}
 		
 		[key, value];
 	},
-	'[^\r\n\t /=>]+' => lexer -> [lexer.current, '']
+	'[^\r\n\t /=>]+' => [lexer.current, '']
 	] );
 	
-	public static var attributesValue:Ruleset<Lexer, String> = Mo.rules( [
-	'"[^"]*"' => lexer -> lexer.current.substring(1, lexer.current.length-1),
-	'\'[^\']*\'' => lexer -> lexer.current.substring(1, lexer.current.length-1),
-	'[^ "\'><]+' => lexer -> lexer.current,
+	public static var attributesValue = Mo.rules( [
+	'"[^"]*"' => lexer.current.substring(1, lexer.current.length-1),
+	'\'[^\']*\'' => lexer.current.substring(1, lexer.current.length-1),
+	'[^ "\'><]+' => lexer.current,
 	] );
 	
-	public static var instructions:Ruleset<Lexer, String> = Mo.rules( [
-	'[a-zA-Z0-9]+' => lexer -> lexer.current,
-	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer -> lexer.current,
-	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer -> lexer.current,
-	'[\r\n\t ]+' => lexer -> lexer.current,
-	'\\[' => lexer -> {
+	public static var instructions = Mo.rules( [
+	'[a-zA-Z0-9]+' => lexer.current,
+	'[^a-zA-Z0-9 \r\n\t<>"\\[]+' => lexer.current,
+	'[a-zA-Z0-9#][^\r\n\t <>"\\[]+[^\\- \r\n\t<>"\\[]+' => lexer.current,
+	'[\r\n\t ]+' => lexer.current,
+	'\\[' => {
 		var value = '';
 		var original = lexer.current;
 		
@@ -423,12 +451,12 @@ class Lexer extends HxparseLexer {
 			}
 			
 			value += token;
-		} catch (e:Dynamic) {
+		} catch (e:Any) {
 			trace( e );
 		}
 		value;
 	},
-	'<' => lexer -> {
+	'<' => {
 		var value = '';
 		var counter = 0;
 		
@@ -450,16 +478,16 @@ class Lexer extends HxparseLexer {
 			}
 			
 			value += token;
-		} catch (e:Dynamic) {
+		} catch (e:Any) {
 			trace( e );
 		}
 		'<$value>';
 	},
-	'"' => lexer -> {
+	'"' => {
 		var value = '';
 		
 		try while (true) {
-			var token = lexer.token( (Mo.rules([ '"' => _ -> '"', '[^"]+' => lexer -> lexer.current ]):Ruleset<Lexer, String>)  );
+			var token = lexer.token( Mo.rules([ '"' => '"', '[^"]+' => lexer.current ])  );
 			
 			switch (token) {
 				case '"':
@@ -470,18 +498,18 @@ class Lexer extends HxparseLexer {
 			}
 			
 			value += token;
-		} catch (e:Dynamic) {
+		} catch (e:Any) {
 			trace( e );
 		}
 		'$value';
 	}
 	] );
 	
-	public static var instructionText:Ruleset<Lexer, String> = Mo.rules( [
-	'[^\\]<>]+' => lexer -> lexer.current,
-	'\\]' => _ -> ']',
-	'<' => _ -> '<',
-	'>' => _ -> '>'
+	public static var instructionText = Mo.rules( [
+	'[^\\]<>]+' => lexer.current,
+	'\\]' => ']',
+	'<' => '<',
+	'>' => '>'
 	] );
 	
 	public static var root = openClose;
@@ -543,11 +571,11 @@ class Lexer extends HxparseLexer {
 	}
 	
 	// Build descendant html elements
-	private static function buildChildren(ref:HtmlRef, lexer:Lexer):Int {
+	private static function buildChildren(ref:HtmlRef, refNode:HtmlRef, lexer:Lexer):Int {
 		var position = lexer.openTags.push( ref ) - 1;
 		
 		var previousParent = lexer.parent;
-		lexer.parent = function() return Keyword(Tag(ref));
+		lexer.parent = refNode;
 		
 		var tag = null;
 		var index = -1;
@@ -586,13 +614,29 @@ class Lexer extends HxparseLexer {
 				case _:
 			}
 			
-			ref.tokens.push( token );
+			var node = switch token {
+				case Keyword(enm): new Vertex( enm );
+				case x: 
+					trace(x);
+					null;
+			};
+			//trace(lexer.parent.val);
+			//trace(node);
+			if (node != null) {
+				lexer.graph.addVertex( node );
+				lexer.graph.addEdge(lexer.parent, node);
+
+			}
+			//ref.tokens.push( token );
 		} catch (e:Eof) {
 			
 		} catch (e:UnexpectedChar) {
 			trace( e );
-		} catch (e:Dynamic) {
+
+		} catch (e:Any) {
+			trace( lexer.graph.asDotGraph( 'htmlgraph' ) );
 			trace( e, CallStack.exceptionStack() );
+
 		}
 		
 		lexer.parent = previousParent;
@@ -600,17 +644,17 @@ class Lexer extends HxparseLexer {
 		return position;
 	}
 	
-	private static function scriptedRule(tag:String):Ruleset<Lexer, Token<HtmlKeywords>> return Mo.rules( [
-	'</[ ]*$tag[ ]*>' => lexer -> {
+	private static function scriptedRule(tag:String) return Mo.rules( [
+	'</[ ]*$tag[ ]*>' => {
 		Keyword( End( lexer.current.substring(2, lexer.current.length - 1) ) );
 	},
-	'[^\r\n\t<]+' => lexer -> {
+	'[^\r\n\t<]+' => {
 		Const(CString( lexer.current ));
 	},
-	'[\r\n\t]+' => lexer -> {
+	'[\r\n\t]+' => {
 		Const(CString( lexer.current ));
 	},
-	'<' => lexer -> {
+	'<' => {
 		Const(CString( lexer.current ));
 	},
 	] );
@@ -628,22 +672,24 @@ class Lexer extends HxparseLexer {
 					// Set the reference as complete.
 					ref.complete = true;
 					// Combine all tokens into one token.
-					ref.tokens = [
-						Keyword( HtmlKeywords.Text(new Ref( 
+					var enm = HtmlKeywords.Text(new Ref( 
 							[for (t in ref.tokens) switch(t) {
 								case Const(CString(x)): x;
 								case _: '';
 							}].join('')
-						, function() return Keyword(Tag(ref))
-						)) )
-					];
+						//, new GraphNode( Tag(ref) )
+						));
+					var node = new Vertex( enm );
+					lexer.graph.addVertex( node );
+					lexer.graph.addEdge(lexer.parent, node);
+					//ref.tokens = [ Keyword( enm ) ];
 					break;
 					
 				case _:
 					
 			}
 			
-			ref.tokens.push( token );
+			//ref.tokens.push( token );
 		} catch (e:Dynamic) {
 			trace( e );
 		}

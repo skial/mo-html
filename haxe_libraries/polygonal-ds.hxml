@@ -1,0 +1,5 @@
+# @install: lix --silent download "https://github.com/polygonal/ds/archive/624e532a0fce8d5d59460a481d27792de6719f21.tar.gz" into polygonal-ds/2.0.1/github/624e532a0fce8d5d59460a481d27792de6719f21
+-D polygonal-ds=2.0.1
+-cp ${HAXESHIM_LIBCACHE}/polygonal-ds/2.0.1/github/624e532a0fce8d5d59460a481d27792de6719f21/src
+
+-lib polygonal-printf

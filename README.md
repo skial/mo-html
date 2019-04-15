@@ -2,6 +2,11 @@
 
 [Mo](https://github.com/skial/mo)'s html lexer & parser.
 
+### Notes
+
+- `#Comments` contain leading and trailing `--` characters.
+- Unknown elements `<randomNodeName/>` are treated as normal elements.
+
 ## Installation
 
 1. [hxparse] - `https://github.com/Simn/hxparse development src`

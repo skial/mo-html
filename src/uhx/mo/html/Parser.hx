@@ -49,8 +49,20 @@ class Parser {
 		
 		return tokens;
 	}
+
+	public function toGraph(bytes:ByteData, name:String):uhx.graphs.directed.Acyclic<HtmlKeywords> {
+		var lexer = new Lexer(bytes, name);
+		try while ( true ) {
+			lexer.token( Lexer.root );
+		} catch (e:Eof) {
+			
+		} catch (e:Dynamic) {
+			
+		}
+		return lexer.graph;
+	}
 	
-	public function print(tokens:Array<Token<HtmlKeywords>>, ?buf:Null<StringBuf>):StringBuf {
+	/*public function print(tokens:Array<Token<HtmlKeywords>>, ?buf:Null<StringBuf>):StringBuf {
 		if (buf == null) {
 			buf = new StringBuf();
 			tab = '';
@@ -95,6 +107,6 @@ class Parser {
 		}
 		
 		return buf;
-	}
+	}*/
 	
 }

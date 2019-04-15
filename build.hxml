@@ -1,38 +1,42 @@
--cp src
--cp tests
-
 -lib mo
 -lib utest
+-lib graphs
+-lib jstack
+-lib unifill
+
+-cp src
+-cp tests
 
 -resource res/input.html@input.html
 -resource res/be_paragraph.html@be_paragraph.html
 
 -main Main
 
--dce full
+#-dce full
+
+-debug
 
 -D analyzer-optimize
+-D JSTACK_HAXE_DEV
+-D JSTACK_FORMAT=%symbol% at %file%:%line%
 
 --each
 
--neko bin/html.n
+#-neko bin/html.n
+#
+#--next
+#
+#-js bin/html.js
+#
+#--next
 
---next
-
--js bin/html.js
-
---next
-
+-D JSTACK_NO_SHUTDOWN
 -lib hxnodejs
 -js bin/html.node.js
 
---next
-
--python bin/py/html.py
-
---next
-
--hl bin/html.hl
+#--next
+#
+#-python bin/py/html.py
 
 #--next
 

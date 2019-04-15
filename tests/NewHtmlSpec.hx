@@ -4,8 +4,7 @@ import haxe.io.Eof;
 import uhx.mo.Token;
 import utest.Assert;
 import byte.ByteData;
-import uhx.mo.html.Lexer;
-//import uhx.mo.html.NewLexer as Lexer;
+import uhx.mo.html.NewLexer;
 import hxparse.UnexpectedChar;
 
 using Lambda;
@@ -14,49 +13,51 @@ using Lambda;
  * ...
  * @author Skial Bainn
  */
-@:keep class HtmlSpec {
+@:nullSafety(Strict) @:keep class NewHtmlSpec extends utest.Test {
 	
 	var paragraphs:String;
 
 	public function new() {
+        super();
 		paragraphs = haxe.Resource.getString('be_paragraph.html');
 	}
 	
-	private function parse(html:String):Array<Token<HtmlKeywords>> {
+	private function parse(html:String):Array<Token<HtmlTokens>> {
 		//HtmlLexer.openTags = [];
-		var lexer = new Lexer( ByteData.ofString( html ), 'html' );
+		var lexer = new NewLexer( ByteData.ofString( html ), 'html' );
 		var tokens = [];
 		
 		try while ( true ) {
-			tokens.push( lexer.token( Lexer.root ) );
-            
-		} catch (e:Eof) { 
-
-        //} catch (e:Any) {
+			var token = @:nullSafety(Off) lexer.tokenize( NewLexer.data_state );
+			tokens.push( token );
 			
-		}
+			switch token {
+				case EOF: break;
+				case _:
+			}
+            
+		} catch (e:Eof) {
+			
+		} catch (e:Any) {
+            trace( e );
+
+        }
 		
 		return tokens;
 	}
 	
-	private function whitespace(t:Token<HtmlKeywords>) {
-		return switch (t) {
-			case Keyword(HtmlKeywords.Text(_)): false;
-			case _: true;
-		}
-	}
-	
-	public function testInstruction() {
+	/*public function testInstruction() {
 		var t = parse( '<!doctype html>' );
 		
 		Assert.equals( 1, t.length );
 		
 		switch (t[0]) {
-			case Keyword( Instruction( { tokens:attributes } ) ):
-				Assert.isTrue( attributes.indexOf( 'doctype' ) > -1 );
-				Assert.isTrue( attributes.indexOf( 'html' ) > -1 );
-				
-			case _:
+			case Keyword( n = { nodeType:Comment, nodeValue:value } ) if (value != null):
+				Assert.isTrue( value.indexOf( 'doctype' ) > -1 );
+				Assert.isTrue( value.indexOf( 'html' ) > -1 );
+            
+            case _:
+                Assert.fail();
 				
 		}
 	}
@@ -67,32 +68,34 @@ using Lambda;
 		Assert.equals( 1, t.length );
 		
 		switch (t[0]) {
-			case Keyword( Instruction( { tokens:attributes } ) ):
-				Assert.isTrue( attributes.indexOf( '[if IE]' ) > -1 );
+			case Keyword( n = { nodeType:Comment, nodeValue:value } ) if (value != null):
+				Assert.isTrue( value.indexOf( '[if IE]' ) > -1 );
 				
 			case _:
+                Assert.fail();
 				
 		}
 	}
 	
 	public function testInstructions_unnamed() {
 		var t = parse( '<![abc 123]>' );
-		trace( t );
+		
 		Assert.equals( 1, t.length );
 		
 		switch (t[0]) {
-			case Keyword( Instruction( { tokens:attributes } ) ):
-				Assert.isTrue( attributes.indexOf( '[abc 123]' ) > -1 );
+			case Keyword( n = { nodeType:Comment, nodeValue:value } ) if (value != null):
+				Assert.isTrue( value.indexOf( '[abc 123]' ) > -1 );
 				
 			case _:
 				Assert.fail();
 		}
 	}
 	
-	/*public function testInstructions_newline_carriage_tab() {
+	public function testInstructions_newline_carriage_tab() {
 		var t = parse( '<!\n\r\t\n>' );
 		
 		Assert.equals( 1, t.length );
+        Assert.isTrue( t[0].match( Keyword({nodeType:Comment, nodeValue:'\n\r\t\n'}) ) );
 	}
 	
 	public function testInstructions_commented_css() {
@@ -101,7 +104,8 @@ using Lambda;
 		Assert.equals( 1, t.length );
 		
 		switch (t[0]) {
-			case Keyword(Instruction( { tokens:attr } )):
+			case Keyword( { nodeType:Comment, nodeValue:attr } ) if (attr != null):
+                Assert.equals( '--\n\r\tBODY { font-family: arial,verdana,helvetica,sans-serif; font-size: 13px; background-color: #FFFFFF; color: #000000; margin-top: 0px; } --', attr );
 				Assert.isTrue( attr.indexOf( 'BODY' ) > -1 );
 				Assert.isTrue( attr.indexOf( 'font-family:' ) > -1 );
 				Assert.isTrue( attr.indexOf( 'arial,verdana,helvetica,sans-serif;' ) > -1 );
@@ -120,48 +124,54 @@ using Lambda;
 			case _:
 				
 		}
-	}
+    }
 	
 	public function testInstructions_commented_html() {
 		var t = parse( '<a/><!-- <commented/><html>with some text</html>--><b/>' );
-		var f = t.filter( function(a) return a.match( Keyword(Instruction(_)) ) );
+		var f = t.filter( function(a) return a.match( Keyword({ nodeType:Comment }) ) );
 		
 		Assert.equals( 3, t.length );
 		Assert.equals( 1, f.length );
 		
 		switch (f[0]) {
-			case Keyword(Instruction( { tokens:attrs } )):
-				attrs = attrs.filter( function(s) return StringTools.trim(s) != '' );
-				Assert.equals( '--', attrs[0] );
-				Assert.equals( '<commented/>', attrs[1] );
-				Assert.equals( '<html>', attrs[2] );
-				Assert.equals( 'with', attrs[3] );
-				Assert.equals( 'some', attrs[4] );
-				Assert.equals( 'text', attrs[5] );
-				Assert.equals( '</html>', attrs[6] );
-				Assert.equals( '--', attrs[7] );
+			case Keyword( { nodeType:Comment, nodeValue:value } ) if (value != null):
+                Assert.equals('-- <commented/><html>with some text</html>--', value);
 				
 			case _:
 				
 		}
-	}
+    }*/
 	
-	public function testInstructions_comment_breaking() {
+	/*public function testInstructions_comment_breaking() {
 		// This does not parse as you would expect :/.
 		var t = parse( '<!-- <a> >> -->' );
 		
 		Assert.equals( 4, t.length );
-		Assert.isTrue( t[0].match( Keyword(Instruction( { tokens:['--', ' ', '<a>',  ' '] } )) ) );
+        switch t[0] {
+            case Keyword( { nodeType:Comment, nodeValue:v } ) if (v != null):
+                Assert.equals('-- <a> >>', v);
+
+            case _:
+                Assert.fail();
+
+        }
 		Assert.isTrue( t[1].match( GreaterThan ) );
-		Assert.isTrue( t[2].match( Keyword(HtmlKeywords.Text( { tokens:' --' } )) ) );
+        switch t[2] {
+            case Keyword( { nodeType:Text, nodeValue:v } ) if (v != null):
+                Assert.equals(' --', v);
+
+            case _:
+                Assert.fail();
+
+        }
 		Assert.isTrue( t[3].match( GreaterThan ) );
 	}
 	
-	public function testInstructions_comment_spaceless() {
+	/*public function testInstructions_comment_spaceless() {
 		var t = parse( '<!--comment-->' );
 		
 		Assert.equals( 1, t.length );
-		Assert.isTrue( t[0].match( Keyword(Instruction( { tokens:['--', 'comment', '--'] } )) ) );
+		Assert.isTrue( t[0].match( Keyword( { nodeType:Comment, nodeValue:'--comment--' } )) );
 	}
 	
 	public function testSelfClosingTag() {
@@ -170,38 +180,49 @@ using Lambda;
 		Assert.equals( 1, t.length );
 		
 		switch (t[0]) {
-			case Keyword(Tag({ name:'link', attributes:m, categories:[0] })):
-				Assert.equals( 2, Lambda.count(m) );
+			case Keyword(n = { nodeName:'LINK', nodeType:Element }):
+                var tag:HtmlRef = (n:Any);
+				Assert.equals( 2, Lambda.count(tag.attributes) );
+                Assert.isTrue( tag.attributes.exists('a') );
+                Assert.isTrue( tag.attributes.exists('b') );
+                @:nullSafety(Off) Assert.equals( '1', tag.attributes.get('a') );
+                @:nullSafety(Off) Assert.equals( '2', tag.attributes.get('b') );
+                Assert.equals( 0, tag.categories[0] );
 				
 			case _:
-				
+                Assert.fail();
 				
 		}
 	}
 	
 	public function testParagraphs() {
-		var t = parse( paragraphs ).filter( whitespace );
-		
+		var t = parse( paragraphs );
+        trace( t );
+        t = t.filter( n -> n.match(Keyword({nodeType:Element})) );
+        
 		Assert.equals( 2, t.length );
 		
 		switch (t[1]) {
-			case Keyword(Tag({ name:'p', categories:[1], tokens:t })):
-				t = t.filter( whitespace );
+			case Keyword(n = { nodeName:'P', nodeValue:null }):
+                var tag:HtmlRef = (n:Any);
+				var tokens = tag.value.filter( n -> n.match(Keyword({nodeType:Element})) );
 				
-				Assert.equals( 7, t.length );
-				Assert.isTrue( t[0].match( Keyword(Tag({ name:'em', categories:[1, 4] })) ));
-				Assert.isTrue( t[1].match( Keyword(Tag({ name:'em', categories:[1, 4] })) ));
-				Assert.isTrue( t[2].match( Keyword(Tag({ name:'code', categories:[1, 4] })) ));
-				Assert.isTrue( t[3].match( Keyword(Tag({ name:'code', categories:[1, 4] })) ));
-				Assert.isTrue( t[4].match( Keyword(Tag({ name:'code', categories:[1, 4] })) ));
-				Assert.isTrue( t[5].match( Keyword(Tag({ name:'code', categories:[1, 4] })) ));
-				Assert.isTrue( t[6].match( Keyword(Tag({ name:'code', categories:[1, 4] })) ));
+				Assert.equals( 7, tokens.length );
+				Assert.isTrue( tokens[0].match( Keyword({ nodeName:'EM' })) );
+				Assert.isTrue( tokens[1].match( Keyword({ nodeName:'EM' })) );
+				Assert.isTrue( tokens[2].match( Keyword({ nodeName:'CODE' })) );
+				Assert.isTrue( tokens[3].match( Keyword({ nodeName:'CODE' })) );
+				Assert.isTrue( tokens[4].match( Keyword({ nodeName:'CODE' })) );
+				Assert.isTrue( tokens[5].match( Keyword({ nodeName:'CODE' })) );
+				Assert.isTrue( tokens[6].match( Keyword({ nodeName:'CODE' })) );
 				
 			case _:
+                Assert.fail();
+
 		}
 	}
 	
-	public function testTags_unending() {
+	/*public function testTags_unending() {
 		var t = parse( '<a><b><c><d><e><f>' );
 		
 		Assert.equals( 1, t.length );

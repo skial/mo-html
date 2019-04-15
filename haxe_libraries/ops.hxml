@@ -1,0 +1,5 @@
+-D ops=0.0.1
+-cp ../../b.e/ops/src
+
+-lib ops
+-lib tink_core
