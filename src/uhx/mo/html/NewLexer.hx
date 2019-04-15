@@ -1822,55 +1822,682 @@ class NewLexer extends hxparse.Lexer {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-name-state
-	public static var after_doctype_name_state = Mo.rules( [] );
+	public static var after_doctype_name_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( after_doctype_name_state ),
+		'>' => {
+			lexer.emit( Keyword(lexer.currentToken) );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+
+			lexer.emit( Keyword(lexer.currentToken) );
+			EOF;
+		},
+		/** see Anything section **/
+		'(p|P)(u|U)(b|B)(l|L)(i|I)(c|C)' => lexer.tokenize( after_doctype_public_keyword_state ),
+		'(s|S)(y|Y)(s|S)(t|T)(e|E)(m|M)' => lexer.tokenize( after_doctype_system_keyword_state ),
+		'[^\t\n\u000C >]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-public-keyword-state
-	public static var after_doctype_public_keyword_state = Mo.rules( [] );
+	public static var after_doctype_public_keyword_state = Mo.rules( [
+		'[\n\t\u000C ]' => lexer.tokenize( before_doctype_public_identifier_state ),
+		'"' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( Keyword(lexer.currentToken) );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( Keyword(lexer.currentToken) );
+			EOF;
+		},
+		'[^\t\n\u000C "\u0022>]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-public-identifier-state
-	public static var before_doctype_public_identifier_state = Mo.rules( [] );
+	public static var before_doctype_public_identifier_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( before_doctype_public_identifier_state ),
+		'"' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C "\u0027>]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-public-identifier-(double-quoted)-state
-	public static var doctype_public_identifier_double_quoted_state = Mo.rules( [] );
+	public static var doctype_public_identifier_double_quoted_state = Mo.rules( [
+		'"' => lexer.tokenize( after_doctype_public_identifier_state ),
+		NULL => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId += '\uFFFD';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_double_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^"$NULL>]' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId += lexer.currentInputCharacter;
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_double_quoted_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-public-identifier-(single-quoted)-state
-	public static var doctype_public_identifier_single_quoted_state = Mo.rules( [] );
+	public static var doctype_public_identifier_single_quoted_state = Mo.rules( [
+		'\u0027' => lexer.tokenize( after_doctype_public_identifier_state ),
+		NULL => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId += '\uFFFD';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\u0027$NULL>]' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.publicId += lexer.currentInputCharacter;
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_public_identifier_single_quoted_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-public-identifier-state
-	public static var after_doctype_public_identifier_state = Mo.rules( [] );
+	public static var after_doctype_public_identifier_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( between_doctype_public_and_system_identifiers_state ),
+		'>' => {
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'"' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C >"\u0027]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#between-doctype-public-and-system-identifiers-state
-	public static var between_doctype_public_and_system_identifiers_state = Mo.rules( [] );
+	public static var between_doctype_public_and_system_identifiers_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( between_doctype_public_and_system_identifiers_state ),
+		'>' => lexer.tokenize( data_state ),
+		'"' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C >"\u0027]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-system-keyword-state
-	public static var after_doctype_system_keyword_state = Mo.rules( [] );
+	public static var after_doctype_system_keyword_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( before_doctype_system_identifier_state ),
+		'"' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C "\u0027>]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-system-identifier-state
-	public static var before_doctype_system_identifer_state = Mo.rules( [] );
+	public static var before_doctype_system_identifier_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( before_doctype_system_identifier_state ),
+		'"' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		},
+		'\u0027' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId = '';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C "\u0027>]' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-system-identifier-(double-quoted)-state
-	public static var doctype_system_identifier_double_quoted_state = Mo.rules( [] );
+	public static var doctype_system_identifier_double_quoted_state = Mo.rules( [
+		'"' => lexer.tokenize( after_doctype_system_identifier_state ),
+		NULL => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId += '\uFFFD';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^"$NULL>]' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId += lexer.currentInputCharacter;
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_double_quoted_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-system-identifier-(single-quoted)-state
-	public static var doctype_system_identifier_single_quoted_state = Mo.rules( [] );
+	public static var doctype_system_identifier_single_quoted_state = Mo.rules( [
+		'\u0027' => lexer.tokenize( after_doctype_system_identifier_state ),
+		NULL => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId += '\uFFFD';
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		},
+		'>' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\u0027$NULL>]' => {
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.systemId += lexer.currentInputCharacter;
+
+				case x:
+					trace( x );
+			}
+			lexer.tokenize( doctype_system_identifier_single_quoted_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-system-identifier-state
-	public static var after_doctype_system_identifier_state = Mo.rules( [] );
+	public static var after_doctype_system_identifier_state = Mo.rules( [
+		'[\t\n\u000C ]' => lexer.tokenize( after_doctype_system_identifier_state ),
+		'>' => {
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		'' => {
+			/* error */
+			switch lexer.currentToken {
+				case DOCTYPE(data):
+					data.forceQuirks = true;
+
+				case x:
+					trace( x );
+			}
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^\t\n\u000C >]' => {
+			/* error */
+			lexer.reconsume( bogus_doctype_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-doctype-state
-	public static var bogus_doctype_state = Mo.rules( [] );
+	public static var bogus_doctype_state = Mo.rules( [
+		'>' => {
+			lexer.emit( lexer.currentToken );
+			lexer.tokenize( data_state );
+		},
+		NULL => {
+			/* error */
+			lexer.tokenize( bogus_doctype_state );
+		},
+		'' => {
+			lexer.emit( lexer.currentToken );
+			EOF;
+		},
+		'[^>$NULL]' => lexer.tokenize( bogus_doctype_state ),
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-state
-	public static var cdata_section_state = Mo.rules( [] );
+	public static var cdata_section_state = Mo.rules( [
+		'\u005D' => lexer.tokenize( cdata_section_bracket_state ),
+		'' => {
+			/* error */
+			EOF;
+		},
+		'[^\u005D]' => {
+			lexer.emit( lexer.currentInputCharacter );
+			lexer.tokenize( cdata_section_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-bracket-state
-	public static var cdata_section_bracket_state = Mo.rules( [] );
+	public static var cdata_section_bracket_state = Mo.rules( [
+		'\u005D' => lexer.tokenize( cdata_section_end_state ),
+		'[^\u005D]' => {
+			lexer.emit('\u005D');
+			lexer.reconsume( cdata_section_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-end-state
-	public static var cdata_section_end_state = Mo.rules( [] );
+	public static var cdata_section_end_state = Mo.rules( [
+		'\u005D' => {
+			lexer.emit('\u005D');
+			lexer.tokenize( cdata_section_end_state );
+		},
+		'\u003E' => lexer.tokenize( data_state ),
+		'[^\u005D\u003E]' => {
+			lexer.emit('\u005D');
+			lexer.emit('\u005D');
+			lexer.reconsume( cdata_section_state );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#character-reference-state
-	public static var character_reference_state = Mo.rules( [] );
+	public static var character_reference_state = Mo.rules( [
+		'[0-9a-zA-Z]' => {
+			lexer.temporaryBuffer = '&';
+			lexer.reconsume( named_character_reference_state );
+		},
+		'#' => {
+			lexer.temporaryBuffer = '&';
+			lexer.temporaryBuffer += lexer.currentInputCharacter;
+			lexer.tokenize( numeric_character_reference_state );
+		},
+		'[^0-9a-zA-Z#]' => {
+			// TODO flush code points.
+			lexer.tokenize( lexer.returnState );
+		}
+	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state
 	public static var named_character_reference_state = Mo.rules( [] );
