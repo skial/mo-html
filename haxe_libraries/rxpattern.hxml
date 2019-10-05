@@ -1,0 +1,6 @@
+-D rxpattern=0.0.1
+# @install: lix --silent download "gh://github.com/skial/rxpattern#d9362da1f45402eefef28bf99fd9334639703118" into rxpattern/0.0.1/github/d9362da1f45402eefef28bf99fd9334639703118
+-lib seri
+-lib tink_macro
+-lib tink_unittest
+-cp ${HAXE_LIBCACHE}/rxpattern/0.0.1/github/d9362da1f45402eefef28bf99fd9334639703118/./

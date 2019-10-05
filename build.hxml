@@ -1,8 +1,13 @@
 -lib mo
--lib utest
 -lib graphs
+-lib hxparse
 -lib jstack
 -lib unifill
+-lib html-entities
+-lib heed
+#-lib tink_macro
+-lib tink_unittest
+#-lib no-spoon
 
 -cp src
 -cp tests
@@ -12,13 +17,16 @@
 
 -main Main
 
-#-dce full
-
 -debug
-
+#-D dump=pretty
+#-D dump_dependencies
+#-D disable.rules.cache
+-dce full
+-D eval-stack
 -D analyzer-optimize
 -D JSTACK_HAXE_DEV
 -D JSTACK_FORMAT=%symbol% at %file%:%line%
+#-D JSTACK_FORMAT=vscode
 
 --each
 

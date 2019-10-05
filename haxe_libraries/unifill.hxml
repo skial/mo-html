@@ -1,3 +1,3 @@
 -D unifill=0.4.1
-# @install: lix --silent download "haxelib:/unifill#0.4.1" into unifill/0.4.1/haxelib
--cp ${HAXE_LIBCACHE}/unifill/0.4.1/haxelib/
+# @install: lix --silent download "gh://github.com/skial/unifill#5f60ba38a283829237bb4d929bf6cb7e56149d67" into unifill/0.4.1/github/5f60ba38a283829237bb4d929bf6cb7e56149d67
+-cp ${HAXE_LIBCACHE}/unifill/0.4.1/github/5f60ba38a283829237bb4d929bf6cb7e56149d67/
