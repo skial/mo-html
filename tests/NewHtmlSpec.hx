@@ -1,11 +1,12 @@
 package ;
 
+import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
-import utest.Assert;
 import byte.ByteData;
 import uhx.mo.html.NewLexer;
 import hxparse.UnexpectedChar;
+import uhx.mo.html.internal.HtmlTokens;
 
 using Lambda;
 
@@ -13,37 +14,54 @@ using Lambda;
  * ...
  * @author Skial Bainn
  */
-@:nullSafety(Strict) @:keep class NewHtmlSpec extends utest.Test {
+//@:asserts
+//@:nullSafety(Strict) 
+class NewHtmlSpec {
 	
 	var paragraphs:String;
 
 	public function new() {
-        super();
 		paragraphs = haxe.Resource.getString('be_paragraph.html');
 	}
 	
 	private function parse(html:String):Array<Token<HtmlTokens>> {
 		//HtmlLexer.openTags = [];
 		var lexer = new NewLexer( ByteData.ofString( html ), 'html' );
+		//return [];
+		//return lexer.parse();
 		var tokens = [];
 		
-		try while ( true ) {
-			var token = @:nullSafety(Off) lexer.tokenize( NewLexer.data_state );
+		try while (true) {
+			var token = /*@:nullSafety(Off) */lexer.tokenize( uhx.mo.html.rules.Rules.data_state );
 			tokens.push( token );
-			
+			//trace( token );
 			switch token {
 				case EOF: break;
 				case _:
 			}
             
 		} catch (e:Eof) {
+			trace( e );
 			
+		} catch (e:UnexpectedChar) {
+			trace( CallStack.toString(CallStack.exceptionStack()) );
+			trace( e.char, e.pos );
+		
 		} catch (e:Any) {
+			/*trace( CallStack.toString(CallStack.callStack()) );
+			trace( CallStack.toString(CallStack.exceptionStack()) );*/
             trace( e );
 
         }
 		
 		return tokens;
+	}
+
+	public function testFoo() {
+		var tokens = parse(paragraphs);
+		for (t in tokens) trace( t );
+		trace(paragraphs);
+		//return asserts.done();
 	}
 	
 	/*public function testInstruction() {

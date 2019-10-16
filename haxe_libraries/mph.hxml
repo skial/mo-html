@@ -1,0 +1,4 @@
+-D mph=0.0.1-alpha
+# @install: lix --silent download "gh://github.com/skial/mph#823ac0d2a7f39d7999430932ce2df6805c4e5064" into mph/0.0.1-alpha/github/823ac0d2a7f39d7999430932ce2df6805c4e5064
+-lib unifill
+-cp ${HAXE_LIBCACHE}/mph/0.0.1-alpha/github/823ac0d2a7f39d7999430932ce2df6805c4e5064/src

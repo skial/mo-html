@@ -1,6 +1,6 @@
 -D heed=0.0.1-alpha
-# @install: lix --silent download "gh://github.com/skial/heed#649012a871339db41f2bf633d2b8a66ffb4d3d30" into heed/0.0.1-alpha/github/649012a871339db41f2bf633d2b8a66ffb4d3d30
+# @install: lix --silent download "gh://github.com/skial/heed#591fb560c7b0314059d99368b5deef9f464c9837" into heed/0.0.1-alpha/github/591fb560c7b0314059d99368b5deef9f464c9837
 -lib html-entities
 -lib rxpattern
 -lib tink_unittest
--cp ${HAXE_LIBCACHE}/heed/0.0.1-alpha/github/649012a871339db41f2bf633d2b8a66ffb4d3d30/src
+-cp ${HAXE_LIBCACHE}/heed/0.0.1-alpha/github/591fb560c7b0314059d99368b5deef9f464c9837/src

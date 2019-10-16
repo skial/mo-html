@@ -1,16 +1,19 @@
 package ;
 
-import utest.Runner;
-import utest.ui.Report;
+import tink.unit.TestBatch;
+import uhx.mo.html.NewLexer;
+import tink.testrunner.Runner;
+
+//import uhx.mo.html.rules.ALL;
 
 class Main {
 
     public static function main() {
-        var runner = new Runner();
-        //runner.addCase( new HtmlSpec() );
-        runner.addCase( new NewHtmlSpec() );
-        Report.create( runner );
-		runner.run();
+        //trace( NewLexer );
+        /*Runner.run(TestBatch.make([
+            new NewHtmlSpec().testFoo(),
+        ])).handle( Runner.exit );*/
+        new NewHtmlSpec().testFoo();
     }
 
 }

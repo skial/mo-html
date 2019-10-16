@@ -8,8 +8,7 @@ import be.ds.vertices.Vertex;
 import be.ds.graphs.IGraph;
 import be.ds.graphs.IGraphUX;
 
-import uhx.mo.html.NewLexer.Ref;
-import uhx.mo.html.NewLexer.Node;
+import uhx.mo.html.internal.*;
 
 using tink.CoreApi;
 

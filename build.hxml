@@ -1,7 +1,7 @@
 -lib mo
 -lib graphs
 -lib hxparse
--lib jstack
+#-lib jstack
 -lib unifill
 -lib html-entities
 -lib heed
@@ -17,7 +17,7 @@
 
 -main Main
 
--debug
+#-debug
 #-D dump=pretty
 #-D dump_dependencies
 #-D disable.rules.cache
@@ -30,21 +30,21 @@
 
 --each
 
-#-neko bin/html.n
-#
-#--next
-#
-#-js bin/html.js
-#
-#--next
+-neko bin/html.n
+
+--next
+
+-hl bin/html.hl
+
+--next
 
 -D JSTACK_NO_SHUTDOWN
 -lib hxnodejs
 -js bin/html.node.js
 
-#--next
-#
-#-python bin/py/html.py
+--next
+
+-python bin/py/html.py
 
 #--next
 

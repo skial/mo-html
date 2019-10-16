@@ -17,6 +17,7 @@ using uhx.mo.html.internal.TokenUtil;
 
 class Rules implements uhx.mo.RulesCache {
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#data-state
     public static var data_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'&' => lexer -> {
 			lexer.returnState = data_state;
