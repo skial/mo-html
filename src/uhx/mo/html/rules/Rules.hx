@@ -1,15 +1,11 @@
 package uhx.mo.html.rules;
 
-/*#if !(eval || macro)
-@:genericBuild( uhx.mo.html.macros.RuleCombiner.build() )
-#end
-class Rules<Rest> {}*/
-
 import uhx.mo.Token;
 import hxparse.Ruleset;
 import uhx.mo.html.NewLexer;
 import uhx.mo.html.internal.HtmlTokens;
 import uhx.mo.html.internal.TokenUtil.*;
+import uhx.mo.html.parsing.ParseErrors.*;
 
 using tink.CoreApi;
 using uhx.mo.html.NewLexer;
@@ -25,22 +21,21 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'<' => lexer -> lexer.tokenize( tag_open_state ),
 		NUL => lexer -> {
-			//lexer.emitString(lexer.currentInputCharacter);
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString(lexer.currentInputCharacter));
 		},
 		'' => lexer -> {
-			//lexer.emitToken( EOF );
 			EOF;
 		},
-		'[^&<]' => lexer -> {
-			//lexer.emitString(lexer.currentInputCharacter);
+		'.' => lexer -> {
 			Const(CString(lexer.currentInputCharacter));
 		},
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#plaintext-state
     public static var plaintext_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
@@ -56,7 +51,6 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-state
     public static var rcdata_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'&' => lexer -> {
-			//lexer.consume( Entity.character_reference_state, rcdata_state );
 			lexer.returnState = rcdata_state;
 			lexer.tokenize( character_reference_state );
 		},
@@ -64,13 +58,13 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( rcdata_less_than_sign_state );
 		},
 		NUL => lexer -> {
-			// error 
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
 			EOF;
 		},
-		'[^&<]' => lexer -> {
+		'.' => lexer -> {
 			Const(CString(lexer.currentInputCharacter));
 		},
 	] );
@@ -81,7 +75,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( rcdata_end_tag_open_state );
 		},
-		'[^/]' => lexer -> {
+		'.' => lexer -> {
 			lexer.emitString('<');
 			lexer.reconsume( rcdata_state );
 		},
@@ -93,7 +87,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( rcdata_end_tag_name_state );
 		},
-		'[^a-zA-Z]' => lexer -> {
+		'.' => lexer -> {
 			lexer.emitString('<');
 			lexer.emitString('/');
 			lexer.reconsume( rcdata_state );
@@ -109,7 +103,6 @@ class Rules implements uhx.mo.RulesCache {
 			} else {
 				lexer.emitString('<');
 				lexer.emitString('/');
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.flushAsCharacterReference();
 				lexer.reconsume( rcdata_state );
 
@@ -122,7 +115,6 @@ class Rules implements uhx.mo.RulesCache {
 			} else {
 				lexer.emitString('<');
 				lexer.emitString('/');
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.flushAsCharacterReference();
 				lexer.reconsume( rcdata_state );
 
@@ -136,7 +128,6 @@ class Rules implements uhx.mo.RulesCache {
 			} else {
 				lexer.emitString('<');
 				lexer.emitString('/');
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.flushAsCharacterReference();
 				lexer.reconsume( rcdata_state );
 
@@ -166,10 +157,9 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.temporaryBuffer += lexer.currentInputCharacter;
 			lexer.tokenize( rcdata_end_tag_name_state );
 		},
-		'[^\t\n\u000C />A-Za-z]' => lexer -> {
+		'.' => lexer -> {
 			lexer.emitString('<');
 			lexer.emitString('/');
-			//lexer.emitString( lexer.temporaryBuffer );
 			lexer.flushAsCharacterReference();
 			lexer.reconsume( rcdata_state );
 		},
@@ -181,13 +171,13 @@ class Rules implements uhx.mo.RulesCache {
 	public static var rawtext_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'<' => lexer -> lexer.tokenize( rawtext_less_than_sign_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
 			EOF;
 		},
-		'[^&<]' => lexer -> {
+		'.' => lexer -> {
 			Const(CString(lexer.currentInputCharacter));
 		},
 	] );
@@ -198,7 +188,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( rawtext_end_tag_open_state );
 		},
-		'[^/]' => lexer -> {
+		'.' => lexer -> {
 			lexer.emitString('<');
 			lexer.reconsume( rawtext_state );
 		},
@@ -210,7 +200,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( rawtext_end_tag_name_state );
 		},
-		'[^a-z]' => lexer -> {
+		'.' => lexer -> {
 			lexer.emitString('<');
 			lexer.emitString('/');
 			lexer.reconsume( rawtext_state );
@@ -227,7 +217,6 @@ class Rules implements uhx.mo.RulesCache {
 				lexer.emitString('<');
 				lexer.emitString('/');
 				lexer.flushAsCharacterReference();
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.reconsume( rawtext_state );
 
 			}
@@ -240,7 +229,6 @@ class Rules implements uhx.mo.RulesCache {
 				lexer.emitString('<');
 				lexer.emitString('/');
 				lexer.flushAsCharacterReference();
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.reconsume( rawtext_state );
 
 			}
@@ -254,7 +242,6 @@ class Rules implements uhx.mo.RulesCache {
 				lexer.emitString('<');
 				lexer.emitString('/');
 				lexer.flushAsCharacterReference();
-				//lexer.emitString( lexer.temporaryBuffer );
 				lexer.reconsume( rawtext_state );
 
 			}
@@ -287,7 +274,6 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.emitString('<');
 			lexer.emitString('/');
 			lexer.flushAsCharacterReference();
-			//lexer.emitString( lexer.temporaryBuffer );
 			lexer.reconsume( rawtext_state );
 		}
 	] );
@@ -315,23 +301,31 @@ class Rules implements uhx.mo.RulesCache {
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state
 	public static var named_character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
-		'[a-zA-Z0-9]+;?' => lexer -> {
+		'[a-zA-Z0-9]+(;|=|[a-zA-Z0-9])?' => lexer -> {
 			lexer.temporaryBuffer += lexer.current;
-			// determine if part of an attribute.
+
 			if (uhx.sys.HtmlEntity.has(lexer.temporaryBuffer)) {
-				if (!StringTools.endsWith(lexer.current, ';')) {
-					// error
+				var partOfAttribute = lexer.isPartOfAttribute();
+
+				if (partOfAttribute && !StringTools.endsWith(lexer.current, ';') && ~/=|[a-zA-Z0-9]/g.match(lexer.current.charAt(lexer.current.length - 1))) {
+					@:privateAccess lexer.pos--;
+					lexer.flushAsCharacterReference();
+					lexer.tokenize( lexer.returnState );
 					
+				} else {
+					if (!StringTools.endsWith(lexer.current, ';')) {
+						lexer.emitToken( Keyword( ParseError( MissingSemicolonAfterCharacterReference(lexer.curPos()) ) ) );
+
+					} 
+					var value = lexer.temporaryBuffer;
+					lexer.temporaryBuffer = '';
+					lexer.temporaryBuffer += be.Heed.decode(
+						value, partOfAttribute // TODO check to see if heed needs to handle attributes
+					);
+					lexer.flushAsCharacterReference();
+					lexer.tokenize( lexer.returnState );
+
 				}
-
-				var value = lexer.temporaryBuffer;
-				lexer.temporaryBuffer = '';
-				lexer.temporaryBuffer += be.Heed.decode(
-					value, false // isAttribute
-				);
-				lexer.flushAsCharacterReference();
-				lexer.tokenize( lexer.returnState );
-
 				
 			} else {
 				lexer.flushAsCharacterReference();
@@ -344,8 +338,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#ambiguous-ampersand-state
 	public static var ambiguous_ampersand_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z0-9]' => lexer -> {
-			// determine if this is in an attribute
-			if (/*isAttribute*/ false) {
+			if (lexer.isPartOfAttribute()) {
 				switch lexer.currentToken {
 					case StartTag(data) | EndTag(data):
 						data.attributes[data.attributes.length - 1].value += lexer.currentInputCharacter;
@@ -362,7 +355,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		';' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnknownNamedCharacterReference(lexer.curPos()) ) ) );
 			lexer.reconsume( lexer.returnState );
 		},
 		'.' => lexer -> {
@@ -389,7 +382,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.reconsume( hexadecimal_character_reference_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbsenceOfDigitsInNumericCharacterReference(lexer.curPos()) ) ) );
 			lexer.flushAsCharacterReference();
 			lexer.reconsume( lexer.returnState );
 		}
@@ -401,7 +394,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.reconsume( decimal_character_reference_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbsenceOfDigitsInNumericCharacterReference(lexer.curPos()) ) ) );
 			lexer.flushAsCharacterReference();
 			lexer.reconsume( lexer.returnState );
 		}
@@ -431,7 +424,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( numeric_character_reference_end_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingSemicolonAfterCharacterReference(lexer.curPos()) ) ) );
 			lexer.reconsume( numeric_character_reference_end_state );
 		}
 	] );
@@ -448,7 +441,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( numeric_character_reference_end_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingSemicolonAfterCharacterReference(lexer.curPos()) ) ) );
 			lexer.reconsume( numeric_character_reference_end_state );
 		}
 	] );
@@ -456,14 +449,43 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#numeric-character-reference-end-state
 	public static var numeric_character_reference_end_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'.' => lexer -> {
+			switch lexer.characterReferenceCode {
+				case 0x00:
+					lexer.emitToken( Keyword( ParseError( NullCharacterReference(lexer.curPos()) ) ) );
+					lexer.characterReferenceCode = 0xFFFD;
+
+				case x if (x > 0x10FFFF):
+					lexer.emitToken( Keyword( ParseError( CharacterReferenceOutsideUnicodeRange(lexer.curPos()) ) ) );
+					lexer.characterReferenceCode = 0xFFFD;
+
+				// is a surrogate
+				case x if (unifill.Unicode.isHighSurrogate(x) && unifill.Unicode.isLowSurrogate(x)):
+					lexer.emitToken( Keyword( ParseError( SurrogateCharacterReference(lexer.curPos()) ) ) );
+					lexer.characterReferenceCode = 0xFFFD;
+
+				// is a noncharacter
+				//case x if (NewLexer.nonCharacterRange.has(x)):
+				case x if (be.Heed.invalidReferenceCodePoints.indexOf(x) > -1):
+					lexer.emitToken( Keyword( ParseError( NoncharacterCharacterReference(lexer.curPos()) ) ) );
+
+				// control character
+				//case x if (NewLexer.controlCodeRange.has(x)):
+				case x if (be.Heed.decodeMapNumericKeys.indexOf(x) > -1):
+					lexer.emitToken( Keyword( ParseError( ControlCharacterReference(lexer.curPos()) ) ) );
+
+				case _:
+
+			}
 			lexer.temporaryBuffer = 
-			@:privateAccess be.Heed.codePointToSymbol( lexer.characterReferenceCode );
+			be.Heed.codePointToSymbol( lexer.characterReferenceCode );
+			lexer.flushAsCharacterReference();
 			lexer.tokenize( lexer.returnState );
 		}
 	] );
 
     // Tag rules
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
     public static var tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
 		'!' => lexer -> lexer.tokenize( markup_declaration_open_state ),
 		'/' => lexer -> lexer.tokenize( end_tag_open_state ),
@@ -472,18 +494,18 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.reconsume( tag_name_state );
 		},
 		'?' => lexer -> {
-			// error 
+			lexer.emitToken( Keyword( ParseError( UnexpectedQuestionMarkInsteadOfTagName(lexer.curPos()) ) ) );
 			lexer.currentToken = Comment({data:''});
 			lexer.reconsume( bogus_comment_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofBeforeTagName(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword( Character({data:'<'}) ) );
 			lexer.emitToken( EOF );
 			lexer.backlog.shift();
 		},
-		'[^!\\/a-zA-Z\\?]' => lexer -> {
-			// error
+		'.' => lexer -> {
+			lexer.emitToken( Keyword( ParseError( InvalidFirstCharacterOfTagName(lexer.curPos()) ) ) );
 			lexer.emitString('<');
 			lexer.reconsume( data_state );
 		},
@@ -496,30 +518,30 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.reconsume( tag_name_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingEndTagName(lexer.curPos()) ) ) );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofBeforeTagName(lexer.curPos()) ) ) );
 			lexer.emitString('<');
 			lexer.emitString('/');
 			lexer.emitToken(EOF);
 			lexer.backlog.shift();
 		},
-		'[^a-zA-Z>]' => lexer -> {
-			// error
+		'.' => lexer -> {
+			lexer.emitToken( Keyword( ParseError( InvalidFirstCharacterOfTagName(lexer.curPos()) ) ) );
 			lexer.currentToken = Comment( {data:''} );
 			lexer.reconsume( bogus_comment_state );
 		},
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state
     public static var tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'>' => lexer -> {
 			lexer.backpressure.push( data_state );
-			/*lexer.emitToken( */Keyword(lexer.lastToken = lexer.currentToken)/* )*/;
-			//null;
+			Keyword(lexer.lastToken = lexer.currentToken);
 		},
 		'[A-Z]' => lexer -> {
 			switch lexer.currentToken {
@@ -532,7 +554,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( tag_name_state );
 		},
 		NULL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.name += '\uFFFD';
@@ -543,10 +565,10 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( tag_name_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
-		'[^\t\n \u000C/>A-Z]' => lexer -> {
+		'.' => lexer -> {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.name += lexer.current;
@@ -558,6 +580,7 @@ class Rules implements uhx.mo.RulesCache {
 		},
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#self-closing-start-tag-state
     public static var self_closing_start_tag_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
 		'>' => lexer -> {
 			switch lexer.currentToken {
@@ -572,11 +595,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedSolidusInTag(lexer.curPos()) ) ) );
 			lexer.reconsume( before_attribute_name_state );
 		}
 	] );
@@ -587,7 +610,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var comment_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_start_dash_state ),
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
@@ -598,12 +621,12 @@ class Rules implements uhx.mo.RulesCache {
 	public static var comment_start_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
@@ -635,7 +658,7 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'\u002D' => lexer -> lexer.tokenize( comment_end_dash_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case Comment(data):
 					data.data += '\uFFFD';
@@ -646,7 +669,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( comment_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
@@ -707,7 +730,7 @@ class Rules implements uhx.mo.RulesCache {
 		'>' => lexer -> lexer.reconsume( comment_end_state ),
 		'' => lexer -> lexer.reconsume( comment_end_state ),
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( NestedComment(lexer.curPos()) ) ) );
 			lexer.reconsume( comment_end_state );
 		}
 	] );
@@ -716,7 +739,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var comment_end_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
@@ -752,7 +775,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( comment_end_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
@@ -783,12 +806,12 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( comment_end_dash_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( IncorrectlyClosedComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
@@ -805,17 +828,18 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-comment-state
 	public static var bogus_comment_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
 		NULL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case Comment(data):
 					data.data += '\uFFFD';
@@ -839,6 +863,7 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
 	public static var markup_declaration_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D\u002D' => lexer -> {
 			lexer.currentToken = Comment({data:''});
@@ -854,7 +879,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( bogus_comment_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( IncorrectlyOpenedComment(lexer.curPos()) ) ) );
 			lexer.currentToken = Comment({data:''});
 			@:privateAccess lexer.pos--;
 			lexer.tokenize( bogus_comment_state );
@@ -864,6 +889,7 @@ class Rules implements uhx.mo.RulesCache {
 
     // Attribute rules
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#attribute-name-state
     public static var attribute_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C />]' => lexer -> {
 			lexer.reconsume( after_attribute_name_state );
@@ -887,7 +913,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_name_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].name += '\uFFFD';
@@ -899,7 +925,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_name_state );
 		},
 		'["\u0027<]' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedCharacterInAttributeName(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].name 
@@ -931,12 +957,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( after_attribute_value_quoted_state );
 		},
 		'&' => lexer -> {
-			//lexer.consume( character_reference_state, attribute_value_double_quoted_state );
 			lexer.returnState = attribute_value_double_quoted_state;
 			lexer.tokenize( character_reference_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].value += '\uFFFD';
@@ -948,7 +973,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_value_double_quoted_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -971,12 +996,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( after_attribute_value_quoted_state );
 		},
 		'&' => lexer -> {
-			//lexer.consume( character_reference_state, attribute_value_single_quoted_state );
 			lexer.returnState = attribute_value_single_quoted_state;
 			lexer.tokenize( character_reference_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].value += '\uFFFD';
@@ -987,7 +1011,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_value_single_quoted_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1010,7 +1034,6 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( before_attribute_name_state );
 		},
 		'&' => lexer -> {
-			//lexer.consume( character_reference_state, attribute_value_unquoted_state );
 			lexer.returnState = attribute_value_unquoted_state;
 			lexer.tokenize( character_reference_state );
 		},
@@ -1019,7 +1042,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].value += '\uFFFD';
@@ -1031,7 +1054,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_value_unquoted_state );
 		},
 		'["\u0027<=`]' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedCharacterInUnquotedAttributeValue(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes[data.attributes.length - 1].value 
@@ -1044,7 +1067,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( attribute_value_unquoted_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1066,7 +1089,7 @@ class Rules implements uhx.mo.RulesCache {
 		'[/>]' => lexer -> lexer.reconsume( after_attribute_name_state ),
 		'' => lexer -> lexer.reconsume( after_attribute_name_state ),
 		'=' => lexer -> {
-			/*error*/
+			lexer.emitToken( Keyword( ParseError( UnexpectedEqualsSignBeforeAttributeName(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes.push( {
@@ -1093,6 +1116,7 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-name-state
 	public static var after_attribute_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
@@ -1102,7 +1126,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1118,18 +1142,20 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
 	public static var before_attribute_value_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_value_state ),
 		'"' => lexer -> lexer.tokenize( attribute_value_double_quoted_state ),
 		'\u0027' => lexer -> lexer.tokenize( attribute_value_single_quoted_state ),
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingAttributeValue(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
 		'.' => lexer -> lexer.reconsume( attribute_value_unquoted_state ),
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
 	public static var after_attribute_value_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
@@ -1138,11 +1164,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInTag(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceBetweenAttributes(lexer.curPos()) ) ) );
 			lexer.reconsume( before_attribute_name_state );
 		}
 	] );
@@ -1153,13 +1179,15 @@ class Rules implements uhx.mo.RulesCache {
 	public static var cdata_section_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u005D' => lexer -> lexer.tokenize( cdata_section_bracket_state ),
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInCData(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
 			lexer.emitString( lexer.currentInputCharacter );
 			lexer.tokenize( cdata_section_state );
 		}
+		// U+0000 NULL characters are handled in the tree construction stage, as part of the in 
+		// foreign content insertion mode, which is the only place where CDATA sections can appear.
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-bracket-state
@@ -1192,13 +1220,13 @@ class Rules implements uhx.mo.RulesCache {
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_name_state ),
 		'>' => lexer -> lexer.reconsume( before_doctype_name_state ),
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceBeforeDoctypeName(lexer.curPos()) ) ) );
 			lexer.reconsume( before_doctype_name_state );
 		}
 	] );
@@ -1222,7 +1250,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_name_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.name += '\uFFFD';
@@ -1234,7 +1262,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_name_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1262,7 +1290,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var doctype_public_identifier_double_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'"' => lexer -> lexer.tokenize( after_doctype_public_identifier_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.publicId += '\uFFFD';
@@ -1274,7 +1302,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_public_identifier_double_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1287,7 +1315,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1316,7 +1344,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var doctype_public_identifier_single_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0027' => lexer -> lexer.tokenize( after_doctype_public_identifier_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.publicId += '\uFFFD';
@@ -1328,7 +1356,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_public_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1341,7 +1369,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1370,7 +1398,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var doctype_system_identifier_double_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'"' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId += '\uFFFD';
@@ -1382,7 +1410,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_double_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1395,7 +1423,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1424,7 +1452,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var doctype_system_identifier_single_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0027' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId += '\uFFFD';
@@ -1436,7 +1464,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( AbruptDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1449,7 +1477,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1474,6 +1502,7 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-name-state
 	public static var before_doctype_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_name_state ),
 		'[A-Z]' => lexer -> {
@@ -1484,18 +1513,18 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_name_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({name:'\uFFFD', forceQuirks:false});
 			lexer.tokenize( doctype_name_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingDoctypeName(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			EOF;
@@ -1517,7 +1546,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1538,7 +1567,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( after_doctype_system_keyword_state );
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( InvalidCharacterSequenceAfterDoctypeName(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1555,7 +1584,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var after_doctype_public_keyword_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\n\t\u000C ]' => lexer -> lexer.tokenize( before_doctype_public_identifier_state ),
 		'"' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypePublicKeyword(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.publicId = '';
@@ -1567,7 +1596,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_public_identifier_double_quoted_state );
 		},
 		'\u0027' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypePublicKeyword(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.publicId = '';
@@ -1579,7 +1608,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_public_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1592,7 +1621,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1605,7 +1634,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1644,7 +1673,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_public_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1657,7 +1686,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1670,7 +1699,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypePublicIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1691,7 +1720,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'"' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId = '';
@@ -1703,7 +1732,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_double_quoted_state );
 		},
 		'\u0027' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId = '';
@@ -1715,7 +1744,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_single_quoted_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1728,7 +1757,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1768,7 +1797,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_single_quoted_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1781,7 +1810,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1798,7 +1827,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var after_doctype_system_keyword_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_system_identifier_state ),
 		'"' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypeSystemKeyword(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId = '';
@@ -1810,7 +1839,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_double_quoted_state );
 		},
 		'\u0027' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypeSystemKeyword(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.systemId = '';
@@ -1822,7 +1851,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1835,7 +1864,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1848,7 +1877,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1887,7 +1916,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( doctype_system_identifier_single_quoted_state );
 		},
 		'>' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1900,7 +1929,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1913,7 +1942,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( MissingQuoteBeforeDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1934,7 +1963,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case DOCTYPE(data):
 					data.forceQuirks = true;
@@ -1947,7 +1976,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedCharacterAfterDoctypeSystemIdentifier(lexer.curPos()) ) ) );
 			lexer.reconsume( bogus_doctype_state );
 		}
 	] );
@@ -1959,7 +1988,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( data_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.tokenize( bogus_doctype_state );
 		},
 		'' => lexer -> {
@@ -1975,7 +2004,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var script_data_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
 		'<' => lexer -> lexer.tokenize( script_data_less_than_sign_state ),
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
@@ -2116,10 +2145,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_escaped_less_than_sign_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -2137,12 +2167,12 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_escaped_less_than_sign_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.emitString('\uFFFD');
 			lexer.tokenize( script_data_escaped_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -2164,12 +2194,12 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.emitString('\uFFFD');
 			lexer.tokenize( script_data_escaped_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -2314,11 +2344,11 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_double_escaped_less_than_sign_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -2337,12 +2367,12 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_double_escaped_less_than_sign_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.emitString('\uFFFD');
 			lexer.tokenize( script_data_double_escaped_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -2365,12 +2395,12 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( script_data_state );
 		},
 		NUL => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			lexer.emitString('\uFFFD');
 			lexer.tokenize( script_data_double_escaped_state );
 		},
 		'' => lexer -> {
-			// error
+			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {

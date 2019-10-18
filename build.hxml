@@ -30,21 +30,21 @@
 
 --each
 
--neko bin/html.n
-
---next
-
--hl bin/html.hl
-
---next
+#-neko bin/html.n
+#
+#--next
+#
+#-hl bin/html.hl
+#
+#--next
 
 -D JSTACK_NO_SHUTDOWN
 -lib hxnodejs
 -js bin/html.node.js
 
---next
-
--python bin/py/html.py
+#--next
+#
+#-python bin/py/html.py
 
 #--next
 
@@ -65,3 +65,7 @@
 # boot error
 #-D php7
 #-php bin/php
+
+--next
+
+--interp
