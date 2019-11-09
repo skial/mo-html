@@ -1,7 +1,7 @@
 package ;
 
 import tink.unit.TestBatch;
-import uhx.mo.html.NewLexer;
+import uhx.mo.html.Tokenizer;
 import tink.testrunner.Runner;
 
 //import uhx.mo.html.rules.ALL;

@@ -2,19 +2,19 @@ package uhx.mo.html.rules;
 
 import uhx.mo.Token;
 import hxparse.Ruleset;
-import uhx.mo.html.NewLexer;
+import uhx.mo.html.Tokenizer;
 import uhx.mo.html.internal.HtmlTokens;
 import uhx.mo.html.internal.TokenUtil.*;
 import uhx.mo.html.parsing.ParseErrors.*;
 
 using tink.CoreApi;
-using uhx.mo.html.NewLexer;
+using uhx.mo.html.Tokenizer;
 using uhx.mo.html.internal.TokenUtil;
 
 class Rules implements uhx.mo.RulesCache {
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#data-state
-    public static var data_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+    public static var data_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'&' => lexer -> {
 			lexer.returnState = data_state;
 			lexer.tokenize( character_reference_state );
@@ -33,7 +33,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#plaintext-state
-    public static var plaintext_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+    public static var plaintext_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Const(CString('\uFFFD'));
@@ -49,7 +49,7 @@ class Rules implements uhx.mo.RulesCache {
 	// RCData rules
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-state
-    public static var rcdata_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+    public static var rcdata_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'&' => lexer -> {
 			lexer.returnState = rcdata_state;
 			lexer.tokenize( character_reference_state );
@@ -70,7 +70,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-less-than-sign-state
-	public static var rcdata_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rcdata_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'/' => lexer -> {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( rcdata_end_tag_open_state );
@@ -82,7 +82,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-end-tag-open-state
-	public static var rcdata_end_tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rcdata_end_tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z]' => lexer -> {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( rcdata_end_tag_name_state );
@@ -95,7 +95,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-end-tag-name-state
-	public static var rcdata_end_tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rcdata_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
 			if (lexer.isAppropiateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
@@ -168,7 +168,7 @@ class Rules implements uhx.mo.RulesCache {
 	// RAWTEXT rules
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#rawtext-state
-	public static var rawtext_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rawtext_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'<' => lexer -> lexer.tokenize( rawtext_less_than_sign_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -183,7 +183,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rawtext-less-than-sign-state
-	public static var rawtext_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rawtext_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'/' => lexer -> {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( rawtext_end_tag_open_state );
@@ -195,7 +195,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-open-state
-	public static var rawtext_end_tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rawtext_end_tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-z]' => lexer -> {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( rawtext_end_tag_name_state );
@@ -208,7 +208,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
-	public static var rawtext_end_tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var rawtext_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
 			if (lexer.isAppropiateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
@@ -282,7 +282,7 @@ class Rules implements uhx.mo.RulesCache {
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#character-reference-state
 	// Set the temporary buffer to the empty string. Append a U+0026 AMPERSAND (&) character to the temporary buffer. Consume the next input character:
-	public static var character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[0-9a-zA-Z]' => lexer -> {
 			lexer.temporaryBuffer = '&';
 			lexer.reconsume( named_character_reference_state );
@@ -300,7 +300,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state
-	public static var named_character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var named_character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z0-9]+(;|=|[a-zA-Z0-9])?' => lexer -> {
 			lexer.temporaryBuffer += lexer.current;
 
@@ -336,7 +336,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#ambiguous-ampersand-state
-	public static var ambiguous_ampersand_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var ambiguous_ampersand_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z0-9]' => lexer -> {
 			if (lexer.isPartOfAttribute()) {
 				switch lexer.currentToken {
@@ -364,7 +364,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#numeric-character-reference-state
-	public static var numeric_character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var numeric_character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0078|\u0058' => lexer -> {
 			lexer.characterReferenceCode = 0;
 			lexer.temporaryBuffer += lexer.currentInputCharacter;
@@ -377,7 +377,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#hexadecimal-character-reference-start-state
-	public static var hexadecimal_character_reference_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var hexadecimal_character_reference_start_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[A-Z]|[a-z]' => lexer -> {
 			lexer.reconsume( hexadecimal_character_reference_state );
 		},
@@ -389,7 +389,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#decimal-character-reference-start-state
-	public static var decimal_character_reference_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var decimal_character_reference_start_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[0-9]' => lexer -> {
 			lexer.reconsume( decimal_character_reference_state );
 		},
@@ -401,7 +401,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#hexadecimal-character-reference-state
-	public static var hexadecimal_character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var hexadecimal_character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[0-9]' => lexer -> {
 			var charCode = lexer.current.charCodeAt(0);
 			lexer.characterReferenceCode *= 16;
@@ -430,7 +430,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#decimal-character-reference-state
-	public static var decimal_character_reference_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var decimal_character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'0-9' => lexer -> {
 			var charCode = lexer.current.charCodeAt(0);
 			lexer.characterReferenceCode *= 10;
@@ -447,7 +447,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#numeric-character-reference-end-state
-	public static var numeric_character_reference_end_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var numeric_character_reference_end_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'.' => lexer -> {
 			switch lexer.characterReferenceCode {
 				case 0x00:
@@ -464,12 +464,12 @@ class Rules implements uhx.mo.RulesCache {
 					lexer.characterReferenceCode = 0xFFFD;
 
 				// is a noncharacter
-				//case x if (NewLexer.nonCharacterRange.has(x)):
+				//case x if (Tokenizer.nonCharacterRange.has(x)):
 				case x if (be.Heed.invalidReferenceCodePoints.indexOf(x) > -1):
 					lexer.emitToken( Keyword( ParseError( NoncharacterCharacterReference(lexer.curPos()) ) ) );
 
 				// control character
-				//case x if (NewLexer.controlCodeRange.has(x)):
+				//case x if (Tokenizer.controlCodeRange.has(x)):
 				case x if (be.Heed.decodeMapNumericKeys.indexOf(x) > -1):
 					lexer.emitToken( Keyword( ParseError( ControlCharacterReference(lexer.curPos()) ) ) );
 
@@ -486,7 +486,7 @@ class Rules implements uhx.mo.RulesCache {
     // Tag rules
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
-    public static var tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
+    public static var tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>>= Mo.rules( [
 		'!' => lexer -> lexer.tokenize( markup_declaration_open_state ),
 		'/' => lexer -> lexer.tokenize( end_tag_open_state ),
 		'[a-zA-Z]' => lexer -> {
@@ -512,7 +512,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// https://html.spec.whatwg.org/multipage/parsing.html#end-tag-open-state
-    public static var end_tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
+    public static var end_tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>>= Mo.rules( [
 		'[a-zA-Z]' => lexer -> {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( tag_name_state );
@@ -536,7 +536,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state
-    public static var tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
+    public static var tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>>= Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'>' => lexer -> {
@@ -581,7 +581,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#self-closing-start-tag-state
-    public static var self_closing_start_tag_state:Ruleset<NewLexer, Token<HtmlTokens>>= Mo.rules( [
+    public static var self_closing_start_tag_state:Ruleset<Tokenizer, Token<HtmlTokens>>= Mo.rules( [
 		'>' => lexer -> {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
@@ -607,7 +607,7 @@ class Rules implements uhx.mo.RulesCache {
     // Comment rules
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#comment-start-state
-	public static var comment_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_start_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_start_dash_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
@@ -618,7 +618,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-start-dash-state
-	public static var comment_start_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_start_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
@@ -644,7 +644,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-state
-	public static var comment_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'<' => lexer -> {
 			switch lexer.currentToken {
 				case Comment(data):
@@ -687,7 +687,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-less-than-sign-state
-	public static var comment_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'!' => lexer -> {
 			switch lexer.currentToken {
 				case Comment(data):
@@ -714,19 +714,19 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-less-than-sign-bang-state
-	public static var comment_less_than_sign_bang_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_less_than_sign_bang_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_less_than_sign_bang_dash_state ),
 		'.' => lexer -> lexer.reconsume( comment_state ),
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-less-than-sign-bang-dash-state
-	public static var comment_less_than_sign_bang_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_less_than_sign_bang_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_less_than_sign_bang_dash_dash_state ),
 		'.' => lexer -> lexer.reconsume( comment_end_dash_state ),
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-less-than-sign-bang-dash-dash-state
-	public static var comment_less_than_sign_bang_dash_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_less_than_sign_bang_dash_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> lexer.reconsume( comment_end_state ),
 		'' => lexer -> lexer.reconsume( comment_end_state ),
 		'.' => lexer -> {
@@ -736,7 +736,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-end-dash-state
-	public static var comment_end_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_end_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
@@ -757,7 +757,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-end-state
-	public static var comment_end_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_end_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
@@ -793,7 +793,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-end-bang-state
-	public static var comment_end_bang_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var comment_end_bang_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D' => lexer -> {
 			switch lexer.currentToken {
 				case Comment(data):
@@ -829,7 +829,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-comment-state
-	public static var bogus_comment_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var bogus_comment_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
@@ -864,7 +864,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state
-	public static var markup_declaration_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var markup_declaration_open_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u002D\u002D' => lexer -> {
 			lexer.currentToken = Comment({data:''});
 			lexer.tokenize( comment_start_state );
@@ -890,7 +890,7 @@ class Rules implements uhx.mo.RulesCache {
     // Attribute rules
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#attribute-name-state
-    public static var attribute_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+    public static var attribute_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C />]' => lexer -> {
 			lexer.reconsume( after_attribute_name_state );
 		},
@@ -952,7 +952,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(double-quoted)-state
-	public static var attribute_value_double_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var attribute_value_double_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'"' => lexer -> {
 			lexer.tokenize( after_attribute_value_quoted_state );
 		},
@@ -991,7 +991,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(single-quoted)-state
-	public static var attribute_value_single_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var attribute_value_single_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0027' => lexer -> {
 			lexer.tokenize( after_attribute_value_quoted_state );
 		},
@@ -1029,7 +1029,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#attribute-value-(unquoted)-state
-	public static var attribute_value_unquoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var attribute_value_unquoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
 			lexer.tokenize( before_attribute_name_state );
 		},
@@ -1084,7 +1084,7 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
-	public static var before_attribute_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var before_attribute_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'[/>]' => lexer -> lexer.reconsume( after_attribute_name_state ),
 		'' => lexer -> lexer.reconsume( after_attribute_name_state ),
@@ -1117,7 +1117,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-name-state
-	public static var after_attribute_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_attribute_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'=' => lexer -> lexer.tokenize( before_attribute_value_state ),
@@ -1143,7 +1143,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-value-state
-	public static var before_attribute_value_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var before_attribute_value_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_value_state ),
 		'"' => lexer -> lexer.tokenize( attribute_value_double_quoted_state ),
 		'\u0027' => lexer -> lexer.tokenize( attribute_value_single_quoted_state ),
@@ -1156,7 +1156,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-attribute-value-(quoted)-state
-	public static var after_attribute_value_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_attribute_value_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'>' => lexer -> {
@@ -1176,7 +1176,7 @@ class Rules implements uhx.mo.RulesCache {
     // CDATA rules
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-state
-	public static var cdata_section_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var cdata_section_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u005D' => lexer -> lexer.tokenize( cdata_section_bracket_state ),
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInCData(lexer.curPos()) ) ) );
@@ -1191,7 +1191,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-bracket-state
-	public static var cdata_section_bracket_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var cdata_section_bracket_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u005D' => lexer -> lexer.tokenize( cdata_section_end_state ),
 		'.' => lexer -> {
 			lexer.emitString('\u005D');
@@ -1200,7 +1200,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#cdata-section-end-state
-	public static var cdata_section_end_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var cdata_section_end_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u005D' => lexer -> {
 			lexer.emitString('\u005D');
 			lexer.tokenize( cdata_section_end_state );
@@ -1216,7 +1216,7 @@ class Rules implements uhx.mo.RulesCache {
     // DOCTYPE rules
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-state
-	public static var doctype_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_name_state ),
 		'>' => lexer -> lexer.reconsume( before_doctype_name_state ),
 		'' => lexer -> {
@@ -1232,7 +1232,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-name-state
-	public static var doctype_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_name_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
@@ -1287,7 +1287,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-public-identifier-(double-quoted)-state
-	public static var doctype_public_identifier_double_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_public_identifier_double_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'"' => lexer -> lexer.tokenize( after_doctype_public_identifier_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -1341,7 +1341,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-public-identifier-(single-quoted)-state
-	public static var doctype_public_identifier_single_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_public_identifier_single_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0027' => lexer -> lexer.tokenize( after_doctype_public_identifier_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -1395,7 +1395,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-system-identifier-(double-quoted)-state
-	public static var doctype_system_identifier_double_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_system_identifier_double_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'"' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -1449,7 +1449,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#doctype-system-identifier-(single-quoted)-state
-	public static var doctype_system_identifier_single_quoted_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var doctype_system_identifier_single_quoted_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\u0027' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -1503,7 +1503,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-name-state
-	public static var before_doctype_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var before_doctype_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_name_state ),
 		'[A-Z]' => lexer -> {
 			lexer.currentToken = DOCTYPE({
@@ -1539,7 +1539,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-name-state
-	public static var after_doctype_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_doctype_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_name_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
@@ -1581,7 +1581,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-public-keyword-state
-	public static var after_doctype_public_keyword_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_doctype_public_keyword_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\n\t\u000C ]' => lexer -> lexer.tokenize( before_doctype_public_identifier_state ),
 		'"' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypePublicKeyword(lexer.curPos()) ) ) );
@@ -1648,7 +1648,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-public-identifier-state
-	public static var before_doctype_public_identifier_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var before_doctype_public_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_public_identifier_state ),
 		'"' => lexer -> {
 			switch lexer.currentToken {
@@ -1713,7 +1713,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-public-identifier-state
-	public static var after_doctype_public_identifier_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_doctype_public_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( between_doctype_public_and_system_identifiers_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
@@ -1771,7 +1771,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#between-doctype-public-and-system-identifiers-state
-	public static var between_doctype_public_and_system_identifiers_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var between_doctype_public_and_system_identifiers_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( between_doctype_public_and_system_identifiers_state ),
 		'>' => lexer -> lexer.tokenize( data_state ),
 		'"' => lexer -> {
@@ -1824,7 +1824,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-system-keyword-state
-	public static var after_doctype_system_keyword_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_doctype_system_keyword_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_system_identifier_state ),
 		'"' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( MissingWhitespaceAfterDoctypeSystemKeyword(lexer.curPos()) ) ) );
@@ -1891,7 +1891,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-doctype-system-identifier-state
-	public static var before_doctype_system_identifier_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var before_doctype_system_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_doctype_system_identifier_state ),
 		'"' => lexer -> {
 			switch lexer.currentToken {
@@ -1956,7 +1956,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#after-doctype-system-identifier-state
-	public static var after_doctype_system_identifier_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var after_doctype_system_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
@@ -1982,7 +1982,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-doctype-state
-	public static var bogus_doctype_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var bogus_doctype_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
 			lexer.emitToken( Keyword(lexer.currentToken) );
 			lexer.tokenize( data_state );
@@ -2001,7 +2001,7 @@ class Rules implements uhx.mo.RulesCache {
 	// Script rules
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-state
-	public static var script_data_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'<' => lexer -> lexer.tokenize( script_data_less_than_sign_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
@@ -2014,7 +2014,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-less-than-sign-state
-	public static var script_data_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'/' => lexer -> {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( script_data_end_tag_open_state );
@@ -2031,7 +2031,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-end-tag-open-state
-	public static var script_data_end_tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_end_tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-z]' => lexer -> {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( script_data_end_tag_name_state );
@@ -2044,7 +2044,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-end-tag-name-state
-	public static var script_data_end_tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
 			if (lexer.isAppropiateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
@@ -2114,7 +2114,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escape-start-state
-	public static var script_data_escape_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escape_start_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_escape_start_dash_state );
@@ -2125,7 +2125,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escape-start-dash-state
-	public static var script_data_escape_start_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escape_start_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_escaped_dash_dash_state );
@@ -2136,7 +2136,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-state
-	public static var script_data_escaped_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_escaped_dash_state);
@@ -2158,7 +2158,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-dash-state
-	public static var script_data_escaped_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_escaped_dash_state );
@@ -2182,7 +2182,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-dash-dash-state
-	public static var script_data_escaped_dash_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_dash_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			Const(CString('-'));
 		},
@@ -2209,7 +2209,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-less-than-sign-state
-	public static var script_data_escaped_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'/' => lexer -> {
 			lexer.temporaryBuffer = '';
 			lexer.tokenize( script_data_escaped_end_tag_open_state );
@@ -2226,7 +2226,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-end-tag-open-state
-	public static var script_data_escaped_end_tag_open_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_end_tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z]' => lexer -> {
 			lexer.currentToken = EndTag( makeTag() );
 			lexer.reconsume( script_data_escaped_end_tag_name_state );
@@ -2239,7 +2239,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-end-tag-name-state
-	public static var script_data_escaped_end_tag_name_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_escaped_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
 			if (lexer.isAppropiateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
@@ -2309,7 +2309,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escape-start-state
-	public static var script_data_double_escape_start_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escape_start_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C />]' => lexer -> {
 			lexer.emitString( lexer.currentInputCharacter );
 			if (lexer.temporaryBuffer == 'script') {
@@ -2334,7 +2334,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escaped-state
-	public static var script_data_double_escaped_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escaped_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_double_escaped_dash_state );
@@ -2357,7 +2357,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escaped-dash-state
-	public static var script_data_double_escaped_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escaped_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			lexer.emitString('-');
 			lexer.tokenize( script_data_double_escaped_dash_dash_state );
@@ -2382,7 +2382,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escaped-dash-dash-state
-	public static var script_data_double_escaped_dash_dash_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escaped_dash_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
 			Const(CString('-'));
 		},
@@ -2410,7 +2410,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escaped-less-than-sign-state
-	public static var script_data_double_escaped_less_than_sign_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escaped_less_than_sign_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'/' => lexer -> {
 			lexer.temporaryBuffer = '';
 			lexer.emitString('/');
@@ -2422,7 +2422,7 @@ class Rules implements uhx.mo.RulesCache {
 	] );
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escape-end-state
-	public static var script_data_double_escape_end_state:Ruleset<NewLexer, Token<HtmlTokens>> = Mo.rules( [
+	public static var script_data_double_escape_end_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C />]' => lexer -> {
 			lexer.emitString(lexer.currentInputCharacter);
 

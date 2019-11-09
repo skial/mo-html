@@ -7,9 +7,11 @@ import haxe.io.BytesBuffer;
 import uhx.sys.seri.Range;
 import uhx.sys.seri.Ranges;
 import uhx.mo.html.internal.HtmlTokens;
+import uhx.mo.html.parsing.InsertionMode;
 
 using tink.CoreApi;
 
+@:notNull
 @:forward
 @:forwardStatics
 enum abstract Characters(String) to String {
@@ -18,9 +20,9 @@ enum abstract Characters(String) to String {
 }
 
 typedef Tokens = Token<HtmlTokens>;
-typedef HtmlRules = Ruleset<NewLexer, Tokens>;
+typedef HtmlRules = Ruleset<Tokenizer, Tokens>;
 
-class NewLexer extends Lexer {
+class Tokenizer extends Lexer {
 
     /**
         Before each step of the tokenizer, the user agent must first check 
@@ -31,12 +33,19 @@ class NewLexer extends Lexer {
     public var paused:Bool = false;
 
     /**
+        The insertion point is the position (just before a character or just 
+        before the end of the input stream) where content inserted using 
+        `document.write()` is actually inserted. The insertion point is 
+        relative to the position of the character immediately after it, it 
+        is not an absolute offset into the input stream. Initially, the 
+        insertion point is undefined.
+        ---
         The insertion mode is a state variable that controls the 
         primary operation of the tree construction stage.
         ---
         @see https://html.spec.whatwg.org/multipage/parsing.html#insertion-mode
     **/
-    public var insertionMode:String = '';
+    public var insertionMode:InsertionMode = Initial;
 
     /**
         Initially, the stack of open elements is empty. The stack grows downwards; 
@@ -60,10 +69,28 @@ class NewLexer extends Lexer {
     public var temporaryBuffer:Null<String> = null;
     public var currentToken:Null<HtmlTokens> = null;
     public var characterReferenceCode:Int = 0;
+
+    // The current input character is the last character to have been consumed.
+    // @see https://html.spec.whatwg.org/multipage/parsing.html#current-input-character
     public var currentInputCharacter(get, never):Null<String>;
 
     private inline function get_currentInputCharacter():String {
         return this.current;
+    }
+
+    /**
+        The next input character is the first character in the input stream 
+        that has not yet been consumed or explicitly ignored by the requirements 
+        in this section. Initially, the next input character is the first 
+        character in the input.
+        @see https://html.spec.whatwg.org/multipage/parsing.html#next-input-character
+    **/
+    public var nextInputCharacter(get, never):Null<String>;
+
+    private inline function get_nextInputCharacter():Null<String> {
+        return (pos + 1 == this.input.length) 
+            ? null 
+            : String.fromCharCode(this.input.readByte(pos + 1));
     }
 
     /**
@@ -169,7 +196,7 @@ class NewLexer extends Lexer {
         that means to switch to that state, but when it attempts to consume the 
         next input character, provide it with the current input character instead.
     **/
-    public static function reconsume<R:HtmlRules>(lexer:NewLexer, ruleset:R, characters:Int = 1):Tokens {
+    public static function reconsume<R:HtmlRules>(lexer:Tokenizer, ruleset:R, characters:Int = 1):Tokens {
         @:privateAccess lexer.pos -= characters;
 		return lexer.tokenize( ruleset );
     }
