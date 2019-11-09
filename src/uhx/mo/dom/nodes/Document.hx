@@ -6,17 +6,19 @@ import uhx.mo.xml.Grammer;
 import uhx.mo.infra.Namespaces;
 import uhx.mo.html.tree.NodePtr;
 
-// @see https://html.spec.whatwg.org/multipage/dom.html#the-document-object
-// @see https://dom.spec.whatwg.org/#interface-document
+/**
+    @see https://html.spec.whatwg.org/multipage/dom.html#the-document-object
+    @see https://dom.spec.whatwg.org/#interface-document
+**/
 @:using(uhx.mo.dom.nodes.Document.DocumentUtil)
 class Document extends BaseNode {
 
     // @see https://dom.spec.whatwg.org/#node-trees
     @:noCompletion public var tree:Tree;
 
-    public function new(tree:Tree) {
+    public function new(?tree:Tree) {
         id = Counter.next();
-        this.tree = tree;
+        this.tree = tree == null ? new Tree() : tree;
         super(null);
     }
 
@@ -44,7 +46,7 @@ class Document extends BaseNode {
     // Interface Document specific
     // @see https://dom.spec.whatwg.org/#interface-document
 
-    public var URL:String;
+    public var url:String;
     public var documentURI:String;
     public var origin:String;
     public var compatMode:String;
