@@ -1,11 +1,12 @@
 package uhx.mo.html.parsing;
 
 import uhx.mo.infra.Namespaces;
-import uhx.mo.dom.Document;
-import uhx.mo.dom.Element;
 import uhx.mo.dom.Tree;
-import uhx.mo.dom.Node;
-import uhx.mo.dom.DocumentType;
+import uhx.mo.dom.nodes.Node;
+import uhx.mo.dom.nodes.Comment;
+import uhx.mo.dom.nodes.Element;
+import uhx.mo.dom.nodes.Document;
+import uhx.mo.dom.nodes.DocumentType;
 import uhx.mo.html.tree.Construction;
 import uhx.mo.html.internal.HtmlTokens;
 import uhx.mo.html.parsing.InsertionMode;
@@ -18,7 +19,7 @@ class InsertionRules {
     private var selection:Array<Token<HtmlTokens>->Construction->Void>;
 
     public function new() {
-        selection = [initial, beforeHtml];
+        selection = [initial, beforeHtml, beforeHead, inHead];
     }
 
     public inline function process(token:Token<HtmlTokens>, maker:Construction):Void {
@@ -83,7 +84,9 @@ class InsertionRules {
         "-//WebTechs//DTD Mozilla HTML//",
     ];
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#the-initial-insertion-mode
+    /**
+    @see https://html.spec.whatwg.org/multipage/parsing.html#the-initial-insertion-mode
+    **/
     public function initial(token:Token<HtmlTokens>, maker:Construction) {
         switch token {
             case Keyword(Character({data:char})):
@@ -92,7 +95,11 @@ class InsertionRules {
                 }
 
             case Keyword(Comment({data:value})):
-                maker.insertComment( value, maker.document.length - 1 );
+                // Insert a comment as the last child of the Document object.
+                //maker.insertComment( value, maker.document.length - 1 );
+                var comment = new Comment(value);
+                comment.id = maker.tree.addVertex( comment );
+                maker.document.childrenPtr.push( comment.id );
 
             case Keyword(DOCTYPE(doctype)):
                 var check = 
@@ -158,36 +165,140 @@ class InsertionRules {
                 }
 
                 insertionMode = BeforeHtml;
+                process(token, maker);
 
         }
 
     }
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#the-before-html-insertion-mode
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#the-before-html-insertion-mode
+    **/
     public function beforeHtml(token:Token<HtmlTokens>, maker:Construction) {
         switch token {
             case Keyword(DOCTYPE(obj)):
                 // parse error
 
             case Keyword(Comment(obj)):
-                maker.insertComment(obj.data, maker.document.length - 1);
+                // Insert a comment as the last child of the Document object.
+                //maker.insertComment(obj.data, maker.document.length - 1);
+                var comment = new Comment(obj.data);
+                comment.id = maker.tree.addVertex( comment );
+                maker.document.childrenPtr.push( comment.id );
 
             case Keyword(Character({data:char})):
                 if (char != '\u0009' || char != '\u000A' ||  char != '\u000C' || char != '\u000D' || char != '\u0020') {
 
                 }
 
-            case Keyword(StartTag(obj)) if (obj.name == 'html'):
-                var element = Document.createAnElement(maker.document, obj.name, Namespaces.HTML);
-                element.parent = maker.document;
-                // append element to document.
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                var element = maker.createAnElementForToken( tag, Namespaces.HTML, maker.document );
+                maker.document.childrenPtr.push( element.id );
+                maker.openElements.push( element.id );
 
-            case Keyword(EndTag(obj)) if (['head', 'body', 'html', 'br'].indexOf(obj.name) > -1):
-                
+                // TODO check navigation of browsing context
 
-            case Keyword(EndTag(obj)):
+                insertionMode = BeforeHead;
+
+            /*case Keyword(EndTag(obj)) if (['head', 'body', 'html', 'br'].indexOf(obj.name) > -1):
+                // Action as described in the "anything else" entry below.
+            */
+            case Keyword(EndTag(obj)) if (['head', 'body', 'html', 'br'].indexOf(obj.name) == -1):
+                // Parse error. Ignore the token.
 
             case _:
+                var html = maker.document.createAnElement('html', Namespaces.HTML);
+                maker.document.childrenPtr.push( html.id );
+                maker.openElements.push( html.id );
+
+                // TODO check navigation of browsing context
+
+                insertionMode = BeforeHead;
+                process(token, maker);
+
+        }
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#the-before-head-insertion-mode
+    **/
+    public function beforeHead(token:Token<HtmlTokens>, maker:Construction) {
+        switch token {
+            case Keyword(Character({data:char})):
+                if (char != '\u0009' || char != '\u000A' ||  char != '\u000C' || char != '\u000D' || char != '\u0020') {
+
+                }
+
+            case Keyword(Comment(obj)):
+                maker.insertComment(obj.data);
+
+            case Keyword(DOCTYPE(obj)):
+                // Parse error. Ignore the token.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                // TODO: Process the token using the rules for the "in body" insertion mode.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'head'):
+                var element = maker.insertHtmlElement(tag);
+                // TODO: set document head pointer.
+                //maker.document.head = element;
+                insertionMode = InHead;
+
+            /*case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) > -1):
+                // Act as described in the "anything else" entry below.
+            */
+
+            case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) == -1):
+                // Parse error. Ignore the token.
+
+            case _:
+                var element = maker.insertHtmlElement({name:'head', selfClosing:true, attributes:[]});
+                // TODO: set document head pointer.
+                //maker.document.head = element;
+                insertionMode = InHead;
+                process(token, maker);
+
+        }
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inhead
+    **/
+    public function inHead(token:Token<HtmlTokens>, maker:Construction) {
+        switch token {
+            case Keyword(Character({data:char})):
+                if (char != '\u0009' || char != '\u000A' ||  char != '\u000C' || char != '\u000D' || char != '\u0020') {
+
+                }
+
+            case Keyword(Comment(obj)):
+                maker.insertComment(obj.data);
+
+            case Keyword(DOCTYPE(obj)):
+                // Parse error. Ignore the token.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                // TODO: Process the token using the rules for the "in body" insertion mode.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'head'):
+                var element = maker.insertHtmlElement(tag);
+                // TODO: set document head pointer.
+                //maker.document.head = element;
+                insertionMode = InHead;
+
+            /*case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) > -1):
+                // Act as described in the "anything else" entry below.
+            */
+
+            case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) == -1):
+                // Parse error. Ignore the token.
+
+            case _:
+                var element = maker.insertHtmlElement({name:'head', selfClosing:true, attributes:[]});
+                // TODO: set document head pointer.
+                //maker.document.head = element;
+                insertionMode = InHead;
+                process(token, maker);
 
         }
     }

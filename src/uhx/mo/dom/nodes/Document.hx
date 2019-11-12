@@ -4,6 +4,7 @@ import uhx.mo.dom.Tree;
 import be.ds.util.Counter;
 import uhx.mo.xml.Grammer;
 import uhx.mo.infra.Namespaces;
+import uhx.mo.html.WindowProxy;
 import uhx.mo.html.tree.NodePtr;
 
 /**
@@ -11,6 +12,7 @@ import uhx.mo.html.tree.NodePtr;
     @see https://dom.spec.whatwg.org/#interface-document
 **/
 @:using(uhx.mo.dom.nodes.Document.DocumentUtil)
+@:using(uhx.mo.html.contexts.BrowsingContext.BrowsingContextUtil_Document)
 class Document extends BaseNode {
 
     // @see https://dom.spec.whatwg.org/#node-trees
@@ -34,6 +36,69 @@ class Document extends BaseNode {
 
     private override function get_nodeValue() {
         return null;
+    }
+
+    /**
+        Html interface fields
+        @see https://html.spec.whatwg.org/multipage/dom.html#document
+    **/
+
+    //public var location(get, null):Location;
+    public var domain:String;
+    public var referrer(default, null):String;
+    public var cookie:String;
+    public var lastModified(default, null):String;
+    //public var readyState(default, null):DocumentReadyState;
+
+    public var title:String;
+    public var dir:String;
+    public var body:Null<Element> = null;
+    public var head(default, null):Null<Element> = null;
+    public var images(default, null):Array<Element> = [];
+    public var embeds(default, null):Array<Element> = [];
+    public var plugins(default, null):Array<Element> = [];
+    public var links(default, null):Array<Element> = [];
+    public var forms(default, null):Array<Element> = [];
+    public var scripts(default, null):Array<Element> = [];
+
+    /*public function getElementsByName(elementName:String):NodeList {
+
+    }*/
+
+    public function open():Document {
+        return this;
+    }
+
+    public function close():Void {}
+    public function write(text:String):Void {}
+    public function writeLn(text:String):Void {}
+
+    public var defaultView(default, null):Null<WindowProxy>;
+    public var hasFocus:Bool = false;
+    public var designMode:String;
+
+    public function execCommand(commandId:String, showUI:Bool = false, value:String = ''):Bool {
+        return false;
+    }
+
+    public function queryCommandEnabled(commandId:String):Bool {
+        return false;
+    }
+
+    public function queryCommandIndeterm(commandId:String):Bool {
+        return false;
+    }
+
+    public function queryCommandState(commandId:String):Bool {
+        return false;
+    }
+
+    public function queryCommandSupported(commandId:String):Bool {
+        return false;
+    }
+
+    public function queryCommandValue(commandId:String):String {
+        return '';
     }
 
     // Non? idl fields.
@@ -100,6 +165,10 @@ class DocumentUtil {
         var definition = null;
         // NOTE: Skip to 7. in spec.
         result = new Element(prefix, localName, 'uncustomized', null, is, document);
+
+        // NOTE: These steps are not part of the spec.
+        result.id = document.tree.addVertex( result );
+        
         return result;
     }
 

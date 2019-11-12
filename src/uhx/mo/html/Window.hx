@@ -1,6 +1,9 @@
 package uhx.mo.html;
 
+import uhx.mo.html.Environment;
+import uhx.mo.dom.nodes.Element;
 import uhx.mo.dom.nodes.Document;
+import uhx.mo.ecma262.realms.Realm;
 import uhx.mo.ecma262.GlobalObject;
 
 /**
@@ -16,8 +19,22 @@ class Window extends GlobalObject {
 
     // the current browsing context
     public var window(get, null):WindowProxy;
+
+    public inline function get_window() {
+        return this;
+    }
+
     public var self(get, null):WindowProxy;
+
+    private inline function get_self() {
+        return this;
+    }
+
     public var document(get, null):Document;
+
+    public inline function get_document() {
+        return document;
+    }
     //public var history(get, null):History;
     //public var location(get, null):Location;
     //public var customElements(get, null):CustomElementRegistry;
@@ -29,6 +46,10 @@ class Window extends GlobalObject {
     //public var toolbar(get, null):BarProp;
     public var closed(get, null):Bool;
 
+    private inline function get_closed():Bool {
+        return false;
+    }
+
     public function close():Void {}
     public function stop():Void {}
     public function focus():Void {}
@@ -36,11 +57,36 @@ class Window extends GlobalObject {
 
     // other browsing contexts
     public var frames(get, null):WindowProxy;
+
+    private inline function get_frames() {
+        return this;
+    }
+
     public var length(get, null):Int;
+
+    private inline function get_length() {
+        return 0;
+    }
+
     public var top(get, null):Null<WindowProxy>;
+
+    private inline function get_top() {
+        return null;
+    }
+
     public var opener:Any;
     public var parent(get, null):Null<WindowProxy>;
+
+    private inline function get_parent() {
+        return null;
+    }
+
     public var frameElement(get, null):Null<Element>;
+
+    private inline function get_frameElement() {
+        return null;
+    }
+
     public function open(?url:String = '', ?target:String = '_blank', ?features = ''):Null<WindowProxy> {
         return null;
     }
@@ -58,18 +104,30 @@ class Window extends GlobalObject {
     public function confirm(?message:String = ''):Bool {
         return false;
     }
-    public function prompt(?message:String = '', ?default:String = ''):Null<String> {
+    public function prompt(?message:String = '', ?_default:String = ''):Null<String> {
         return null;
     }
     public function print():Void {}
 
     public function postMessage(message:Any, targetOrigin:String, ?transfer:Array<{}>):Void {}
-    public function postMessage(message:Any, ?WindowPostMessageOptions:{}):Void {}
+    //public function postMessage(message:Any, ?WindowPostMessageOptions:{}):Void {}
 
     //
 
     public function new () {
+        super();
+    }
 
+}
+
+class WindowUtil {
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/window-object.html#set-up-a-window-environment-settings-object
+    **/
+    public static function setupWindowEnvironmentSettingsObject(executionContext:{}, ?reservedEnvironment:Environment):EnvironmentSettings {
+        
+        return null;
     }
 
 }

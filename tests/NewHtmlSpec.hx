@@ -25,7 +25,7 @@ class NewHtmlSpec {
 	}
 	
 	private function parse(html:String) {
-		var tree = new uhx.mo.html.tree.Construction( ByteData.ofString( html ) );
+		var tree = uhx.mo.html.tree.Construction.make( ByteData.ofString( html ) );
 		tree.parse();
 		trace(tree.isInHtmlNamespace('base'));
 		return tree.openElements;

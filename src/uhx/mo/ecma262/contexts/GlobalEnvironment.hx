@@ -5,6 +5,6 @@ package uhx.mo.ecma262.contexts;
 **/
 class GlobalEnvironment extends LexicalEnvironment {
 
-
+    public inline function new() {}
 
 }

@@ -5,4 +5,6 @@ package uhx.mo.ecma262;
 **/
 class GlobalObject {
 
+    public inline function new() {}
+
 }

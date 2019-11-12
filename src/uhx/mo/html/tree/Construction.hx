@@ -9,15 +9,27 @@ import uhx.mo.html.internal.*;
 import uhx.mo.html.rules.Rules;
 import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.nodes.NodeType;
+import uhx.mo.html.parsing.InsertionRules;
 
 using uhx.mo.html.util.TokenUtil;
 using uhx.mo.html.macros.AbstractTools;
 
-// @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+/**
+    @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+**/
 class Construction {
+
+    public static var current:Construction;
+    public static function make(bytes:byte.ByteData, ?force:Bool = false):Construction {
+        if (current == null || force) {
+            current = new Construction(bytes);
+        }
+        return current;
+    }
 
     public var tree:Tree;
     public var document:Document;
+    public var insertionRules:InsertionRules;
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#next-token
     public var nextToken:String;
@@ -58,9 +70,11 @@ class Construction {
     public var tokenizer:Tokenizer;
 
     public function new(bytes:byte.ByteData) {
-        tokenizer = new Tokenizer(bytes, 'html-parser');
         tree = new Tree();
         document = new Document(tree);
+        tree.addVertex( document );
+        insertionRules = new InsertionRules();
+        tokenizer = new Tokenizer(bytes, 'html-parser::${document.id}::');
     }
 
     public function parse():Void {
@@ -95,7 +109,9 @@ class Construction {
 
     }
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
+    **/
     public function dispatcher(token:Token<HtmlTokens>) {
         trace( token );
         var tkn = token.sure(); // TODO this is wrong. Ignores consts.
@@ -115,6 +131,7 @@ class Construction {
 
         if (bool) {
             // insertionMode(token);
+            insertionRules.process(token, this);
 
         } else {
             // foreignContent(token);
@@ -142,23 +159,29 @@ class Construction {
 
     //
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#appropriate-place-for-inserting-a-node
-    public function appropriateInsertionPoint(?overrideTarget:Node):Int {
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#appropriate-place-for-inserting-a-node
+        @return InsertionLocation { node:Node, pos:Int }
+    **/
+    public function appropriateInsertionPoint(?overrideTarget:Node):InsertionLocation {
         var target = overrideTarget == null ? currentNode : overrideTarget;
-        if (fosterParenting && (target.nodeName == 'table' || target.nodeName == 'tbody' || target.nodeName == 'tfoot' || target.nodeName == 'thead' || target.nodeName == 'tr')) {
+        var targetIs = ['table', 'tbody', 'tfoot', 'thead', 'tr'];
+        var pos = if (fosterParenting && targetIs.indexOf( target.nodeName ) > -1) {
             // TODO: implement steps.
             throw 'Not Implemented';
 
         } else {
-            return target.length > 1 ? target.length - 1 : 0;
+            target.length > 1 ? target.length - 1 : 0;
 
         }
 
-        return 0;
+        return { node:target, pos:pos };
     }
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token
-    public function createElement(tag:Tag, namespace:String, intendedParent:Node):Element {
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token
+    **/
+    public function createAnElementForToken(tag:Tag, namespace:String, intendedParent:Node):Element {
         var document:Document = intendedParent.ownerDocument;
         var localName:String = tag.name;
         var is = null;
@@ -175,10 +198,46 @@ class Construction {
         return element;
     }
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#insert-a-comment
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#insert-a-character
+    **/
+    public function insertCharacter(data:String):Void {
+        var adjustedInsertionLocation = appropriateInsertionPoint();
+        if (currentNode.nodeType == NodeType.Document) return;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#insert-a-comment
+    **/
     public function insertComment(value:String, ?position:Int):Void {
         var comment = new Comment(value);
+        var adjustedInsertionLocation:InsertionLocation = position != null 
+            ? { node:currentNode, pos:position }
+            : appropriateInsertionPoint();
+
         comment.id = tree.addVertex( comment );
+        adjustedInsertionLocation.insert( comment );
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#insert-a-foreign-element
+    **/
+    public function insertForeignContent(tag:Tag, namespace:String):Element {
+        var adjustedInsertionLocation = appropriateInsertionPoint();
+        var element = createAnElementForToken(tag, namespace, currentNode);
+
+        // TODO: fully implement step 3.
+        adjustedInsertionLocation.insert(element.id);
+
+        openElements.push( element.id );
+        return element;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#insert-an-html-element
+    **/
+    public inline function insertHtmlElement(tag:Tag):Element {
+        return insertForeignContent(tag, Namespaces.HTML);
     }
 
 }
