@@ -11,7 +11,6 @@ import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.nodes.NodeType;
 import uhx.mo.html.parsing.InsertionRules;
 
-using uhx.mo.html.util.TokenUtil;
 using uhx.mo.html.macros.AbstractTools;
 
 /**
@@ -88,7 +87,7 @@ class Construction {
             insert characters into the stream being tokenized.)
             **/
             var token = tokenizer.tokenize( Rules.data_state );
-
+            trace( token );
             switch token {
                 case EOF: break;
                 case _:
@@ -104,6 +103,7 @@ class Construction {
 
         } catch (e:Any) {
             trace( e );
+            trace( haxe.CallStack.toString( haxe.CallStack.exceptionStack() ) );
 
         }
 
@@ -113,10 +113,13 @@ class Construction {
         @see https://html.spec.whatwg.org/multipage/parsing.html#tree-construction
     **/
     public function dispatcher(token:Token<HtmlTokens>) {
-        trace( token );
-        var tkn = token.sure(); // TODO this is wrong. Ignores consts.
+        var tkn:HtmlTokens = switch token {
+            case Keyword(t): t;
+            case _: null;
+        }
+        if (tkn == null) return;
         var tknTag = tkn.getTag();
-        var acn = adjustedCurrentNode;
+        var acn = openElements.length > 0 ? adjustedCurrentNode : null;
         var isMathMlPoint = isMathMLTextIntegrationPoint();
         var isHtmlPoint = isHtmlIntegrationPoint();
         var bool = 
@@ -127,10 +130,9 @@ class Construction {
             || (acn != null && tknTag != null && acn.nodeName == 'annotation-xml' && tknTag.name == 'svg')
             || (tkn != null && isHtmlPoint && tkn.isStartTag())
             || (tkn != null && isHtmlPoint && tkn.isCharacter())
-            || token.isEOF();
+            || token.match( EOF );
 
         if (bool) {
-            // insertionMode(token);
             insertionRules.process(token, this);
 
         } else {
@@ -204,6 +206,18 @@ class Construction {
     public function insertCharacter(data:String):Void {
         var adjustedInsertionLocation = appropriateInsertionPoint();
         if (currentNode.nodeType == NodeType.Document) return;
+        var pos = adjustedInsertionLocation.pos;
+        var node = adjustedInsertionLocation.node.get();
+        var parent = node.parent;
+        var prev = parent.childNodes[pos-1];
+        if (pos > 0 && prev != null && prev.nodeType == NodeType.Text) {
+            prev.nodeValue += data;
+
+        } else {
+            var text = new Text(data, node.ownerDocument);
+            adjustedInsertionLocation.insert( text );
+
+        }
     }
 
     /**

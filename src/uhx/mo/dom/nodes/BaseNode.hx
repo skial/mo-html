@@ -21,7 +21,7 @@ class BaseNode implements Node {
     public var parentNode(get, null):Null<Node>;
     public var parentElement(get, null):Null<Element>;
     // TODO look into childNodes being an array of pointers into the graph.
-    public var childNodes(get, null):Array<Node>;
+    public var childNodes(get, null):NodeList;
     public var firstChild(get, null):Null<Node>;
     public var lastChild(get, null):Null<Node>;
     public var previousSibling(get, null):Null<Node>;
@@ -35,11 +35,12 @@ class BaseNode implements Node {
     public var isConnected(get, null):Bool;
     @:isVar public var ownerDocument(get, set):Null<Document>;
 
-    private inline function get_parent() {
-        return null;
+    private inline function get_parent():Null<Node> {
+        return parentPtr.get();
     }
 
-    private inline function set_parent(v) {
+    private inline function set_parent(v:Null<Node>):Null<Node> {
+        if (v != null) parentPtr = v;
         return v;
     }
 

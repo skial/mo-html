@@ -268,7 +268,7 @@ class InsertionRules {
         switch token {
             case Keyword(Character({data:char})):
                 if (char != '\u0009' || char != '\u000A' ||  char != '\u000C' || char != '\u000D' || char != '\u0020') {
-
+                    maker.insertCharacter(char);
                 }
 
             case Keyword(Comment(obj)):
@@ -280,27 +280,65 @@ class InsertionRules {
             case Keyword(StartTag(tag)) if (tag.name == 'html'):
                 // TODO: Process the token using the rules for the "in body" insertion mode.
 
-            case Keyword(StartTag(tag)) if (tag.name == 'head'):
+            case Keyword(StartTag(tag)) if (['base', 'basefont', 'bgsound', 'link'].indexOf(tag.name)):
                 var element = maker.insertHtmlElement(tag);
-                // TODO: set document head pointer.
-                //maker.document.head = element;
-                insertionMode = InHead;
+                maker.openElements.pop();
 
-            /*case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) > -1):
+            case Keyword(StartTag(tag)) if (tag.name == 'meta'):
+                var element = maker.insertHtmlElement(tag);
+                maker.openElements.pop();
+                // TODO: Change encoding if `charset` attribute exists.
+                // TODO: Change encoding if `http-equiv` attribute exists.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'title'):
+                // TODO: follow generic RCDATA element parsing algo.
+
+            case Keyword(StartTag(tag)) if (['noscript', 'noframes', 'style'].indexOf(tag.name)):
+                // TODO: follow generic raw text element parsing algo.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'noscript' /*&& scriptingFlag*/):
+                var element = maker.insertHtmlElement(tag);
+                insertionMode = InHeadNoScript;
+
+            case Keyword(StartTag(tag)) if (tag.name == 'script'):
+                // TODO:
+
+            case Keyword(EndTag(tag)) if (tag.name == 'head'):
+                maker.openElements.pop();
+                insertionMode = AfterHead;
+
+            /*case Keyword(EndTag(tag)) if (['body', 'html', 'br'].indexOf(tag.name) > -1):
                 // Act as described in the "anything else" entry below.
             */
 
             case Keyword(EndTag(tag)) if (['head', 'body', 'html', 'br'].indexOf(tag.name) == -1):
                 // Parse error. Ignore the token.
 
+            case Keyword(StartTag(tag)) if (tag.name == 'template'):
+                // TODO:
+
+            case Keyword(EndTag(tag)) if (tag.name == 'template'):
+                // TODO
+
+            case Keyword(StartTag(tag)) if (tag.name == 'head'):
+                // Parse error. Ignore the token.
+
+            case Keyword(EndTag(tag)):
+                // Parse error. Ignore the token.
+
             case _:
-                var element = maker.insertHtmlElement({name:'head', selfClosing:true, attributes:[]});
-                // TODO: set document head pointer.
-                //maker.document.head = element;
-                insertionMode = InHead;
+                maker.openElements.pop();
+                insertionMode = AfterHead;
                 process(token, maker);
 
         }
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inheadnoscript
+    **/
+    public static function inHeadNoScript(token:Token<HtmlTokens>, maker:Construction):Void {
+        
     }
 
 }

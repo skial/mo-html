@@ -28,7 +28,7 @@ interface Node extends IComparable<Node> extends IIdentity {
     public var parent(get, set):Null<Node>;
     public var parentNode(get, null):Null<Node>;
     public var parentElement(get, null):Null<Element>;
-    public var childNodes(get, null):Array<Node>;
+    public var childNodes(get, null):NodeList;
     public var firstChild(get, null):Null<Node>;
     public var lastChild(get, null):Null<Node>;
     public var previousSibling(get, null):Null<Node>;
@@ -211,23 +211,23 @@ class NodeUtil {
 
                 if (hasText || hasElements > 1) throw 'HierarchyRequestError';
                 if (hasElements == 1 && (
-                    parent.childNodes.filter( n -> n.nodeType == NodeType.Element ).length > 0 ||
+                    [for (n in parent.childNodes) if (n.nodeType == NodeType.Element) n].length > 0 ||
                     child.nodeType == NodeType.DocumentType ||
                     child != null && child.nextSibling != null && child.nextSibling.nodeType == NodeType.DocumentType
                 )) throw 'HierarchyRequestError';
 
             } else if (node.nodeType == NodeType.Element) {
                 if (
-                    parent.childNodes.filter( n -> n.nodeType == NodeType.Element ).length > 0 ||
+                    [for (n in parent.childNodes) if (n.nodeType == NodeType.Element) n].length > 0 ||
                     child.nodeType == NodeType.DocumentType ||
                     child != null && child.nextSibling != null && child.nextSibling.nodeType == NodeType.DocumentType
                 ) throw 'HierarchyRequestError';
 
             } else if (node.nodeType == NodeType.DocumentType) {
                 if (
-                    parent.childNodes.filter( n -> n.nodeType == NodeType.DocumentType ).length > 0 ||
+                    [for (n in parent.childNodes) if (n.nodeType == NodeType.DocumentType) n].length > 0 ||
                     (child != null && child.previousSibling != null && child.previousSibling.nodeType == NodeType.Element) ||
-                    (child == null && parent.childNodes.filter( n -> n.nodeType == NodeType.Element ).length > 0)
+                    (child == null && [for (n in parent.childNodes) if (n.nodeType == NodeType.Element) n].length > 0)
                 ) throw 'HierarchyRequestError';
 
             }
@@ -265,7 +265,7 @@ class NodeUtil {
         }
 
         // 3. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
-        var nodes = node.nodeType == NodeType.DocumentFragment ? node.childNodes : [node];
+        var nodes = node.nodeType == NodeType.DocumentFragment ? node.childNodes.iterator() : [node].iterator();
 
         // 4. If node is a DocumentFragment node, remove its children with the suppress observers flag set.
         if (node.nodeType == NodeType.DocumentFragment) {

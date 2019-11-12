@@ -6,11 +6,11 @@ import uhx.mo.html.tree.NodePtr;
 // @:see https://dom.spec.whatwg.org/#text
 class Text extends BaseNode {
 
-    public function new(data:String = '') {
+    public function new(data:String = '', ?document:Document) {
         this.nodeName = '#text';
         this.nodeType = NodeType.Text;
         this.nodeValue = data;
-        super(null);
+        super(document);
     }
 
     // Node.hx
