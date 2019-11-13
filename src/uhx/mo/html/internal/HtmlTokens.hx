@@ -23,7 +23,7 @@ class HtmlTokensUtil {
 
 	public static function isCharacter(token:HtmlTokens):Bool {
 		switch token {
-			case StartTag(_): return true;
+			case Character(_): return true;
 			case _:
 		}
 		return false;
@@ -31,7 +31,7 @@ class HtmlTokensUtil {
 
 	public static function isStartTag(token:HtmlTokens):Bool {
 		switch token {
-			case Character(_): return true;
+			case StartTag(_): return true;
 			case _:
 		}
 		return false;

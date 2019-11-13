@@ -52,8 +52,21 @@ class Document extends BaseNode {
 
     public var title:String;
     public var dir:String;
-    public var body:Null<Element> = null;
-    public var head(default, null):Null<Element> = null;
+
+    public var bodyPtr:Null<NodePtr> = null;
+    public var headPtr:Null<NodePtr> = null;
+
+    public var body(get, null):Null<Element>;
+    public var head(get, null):Null<Element>;
+
+    private inline function get_body():Null<Element> {
+        return (bodyPtr != null) ? (cast bodyPtr.get():Element) : null;
+    }
+
+    private inline function get_head():Null<Element> {
+        return (headPtr != null) ? (cast headPtr.get():Element) : null;
+    }
+
     public var images(default, null):Array<Element> = [];
     public var embeds(default, null):Array<Element> = [];
     public var plugins(default, null):Array<Element> = [];

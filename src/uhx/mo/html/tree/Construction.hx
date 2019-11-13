@@ -51,8 +51,10 @@ class Construction {
         return currentNode;
     }
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#the-list-of-active-formatting-elements
-    public var activeFormattingElements:Array<Any> = [];
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#the-list-of-active-formatting-elements
+    **/
+    public var activeFormattingElements:Array<NodePtr> = [];
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#the-element-pointers
     public var headPointer:Null<Any> = null;
@@ -89,6 +91,7 @@ class Construction {
             var token = tokenizer.tokenize( Rules.data_state );
             trace( token );
             switch token {
+                case Keyword(ParseError(error)): handleParseError(error);
                 case EOF: break;
                 case _:
             }
@@ -107,6 +110,10 @@ class Construction {
 
         }
 
+    }
+
+    public function handleParseError(error:String, ?pos:haxe.PosInfos):Void {
+        trace(error, pos);
     }
 
     /**
