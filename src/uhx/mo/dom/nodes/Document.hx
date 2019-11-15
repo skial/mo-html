@@ -55,6 +55,7 @@ class Document extends BaseNode {
 
     public var bodyPtr:Null<NodePtr> = null;
     public var headPtr:Null<NodePtr> = null;
+    public var formPtr:Null<NodePtr> = null;
 
     public var body(get, null):Null<Element>;
     public var head(get, null):Null<Element>;

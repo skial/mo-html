@@ -262,22 +262,26 @@ class Construction {
         return insertForeignContent(tag, Namespaces.HTML);
     }
 
-    // openElement helper methods
+    /**
+        ----
+        `openElement` helper methods
+        ----
+    **/
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-the-specific-scope
     **/
-    public function hasElementInSpecificScope(target:Node, list:Array<String>):Bool {
+    public function hasElementInSpecificScope(target:String, list:Array<String>):Bool {
         var index = openElements.length -1;
-        var node = openElements[index];
+        var node = openElements[index].get();
 
         while (true) {
-            if (node == target.id) return true;
+            if (node.nodeName == target) return true;
 
-            if (list.indexOf(node.get().nodeName) > -1) return false;
+            if (list.indexOf(node.nodeName) > -1) return false;
 
             index--;
-            node = openElements[index];
+            node = openElements[index].get();
         }
 
         return false;
@@ -286,36 +290,135 @@ class Construction {
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
     **/
-    public function hasElementInScope():Bool {
-        return false;
+    public inline function hasElementInScope(target:String):Bool {
+        return hasElementInSpecificScope(
+            target, 
+            ['applet', 'caption', 'html', 'table', 'td', 'th', 
+            'marquee', 'object', 'template', /**mathml**/'mi',
+            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
+            'foreignObject', 'desc', 'title']
+        );
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-list-item-scope
     **/
-    public function hasElementInListItemScope():Bool {
-        return false;
+    public inline function hasElementInListItemScope(target:String):Bool {
+        return hasElementInSpecificScope(
+            target, 
+            ['applet', 'caption', 'html', 'table', 'td', 'th', 
+            'marquee', 'object', 'template', /**mathml**/'mi',
+            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
+            'foreignObject', 'desc', 'title', /**extra**/'ol', 'ul']
+        );
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-button-scope
     **/
-    public function hasElementInButtonScope():Bool {
-        return false;
+    public inline function hasElementInButtonScope(target:String):Bool {
+        return hasElementInSpecificScope(
+            target, 
+            ['applet', 'caption', 'html', 'table', 'td', 'th', 
+            'marquee', 'object', 'template', /**mathml**/'mi',
+            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
+            'foreignObject', 'desc', 'title', /**extra**/'button']
+        );
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-table-scope
     **/
-    public function hasElementInTableScope():Bool {
-        return false;
+    public inline function hasElementInTableScope(target:String):Bool {
+        return hasElementInSpecificScope(
+            target, 
+            ['html', 'table', 'template']
+        );
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-select-scope
     **/
-    public function hasElementInSelectScope():Bool {
-        return false;
+    public function hasElementInSelectScope(target:String):Bool {
+        return hasElementInSpecificScope(
+            target, 
+            /**
+                TODO: I have no idea if this is a complete list.
+            **/
+            ['a', 'abbr', 'address', 'area', 'article', 'aside', 
+            'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 
+            'br', 'button', 'canvas', 'caption', 'cite', 'code', 
+            'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 
+            'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 
+            'embed', 'fieldset', 'figcaption', 'figure', 'footer', 
+            'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 
+            'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 
+            'input', 'ins', 'kbd', 'label', 'legend', 'li', 'link', 
+            'main', 'map', 'mark', 'math', 'menu', 'menuitem', 'meta', 
+            'meter', 'nav', 'noscript', 'object', 'ol', /*'optgroup', 'option',*/ 
+            'output', 'p', 'param', 'picture', 'pre', 'progress', 
+            'q', 'rb', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 
+            'script', 'section', 'select', 'slot', 'small', 
+            'source', 'span', 'strong', 'style', 'sub', 'summary', 
+            'sup', 'svg', 'table', 'tbody', 'td', 'template', 
+            'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 
+            'tr', 'track', 'u', 'ul', 'var', 'video', 'wb']
+        );
+    }
+
+    /**
+        ----
+        Closing elements helper methods
+        ----
+    **/
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#generate-implied-end-tags
+    **/
+    public function generateImpliedEndTags(exclude:Array<String>):Void {
+        while (currentNode != null) {
+            switch currentNode.nodeName {
+                case 'dd' | 'dt' | 'li' | 'optgroup' | 'option' | 'p' | 'rb' | 'rp' | 'rt' | 'rtc':
+                    if (exclude.length > 0 && exclude.indexOf(currentNode.nodeName) == -1) {
+                        openElements.pop();
+                    }
+
+                case _:
+                    break;
+
+            }
+
+        }
+
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#generate-all-implied-end-tags-thoroughly
+    **/
+    public function generateImpliedEndTagsThoroughly():Void {
+        while (currentNode != null) {
+            switch currentNode.nodeName {
+                case 'caption' | 'colgroup' | 'dd' | 'dt' | 'li' | 'optgroup' | 'option' | 'p' | 'rb' | 'rp' | 'rt' | 'rtc' | 'tbody' | 'td' | 'tfoot' | 'th' | 'thead' | 'tr':
+                    openElements.pop();
+
+                case _:
+                    break;
+
+            }
+
+        }
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#close-a-p-element
+    **/
+    public function closeParagraphElement():Void {
+        generateImpliedEndTags(['p']);
+        if (currentNode.nodeName != 'p') handleParseError('Parse error.');
+        while (true) {
+            var element = openElements.pop().get();
+            if (element.nodeName == 'p') break;
+        }
     }
 
 }

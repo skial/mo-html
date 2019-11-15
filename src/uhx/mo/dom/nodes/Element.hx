@@ -32,7 +32,7 @@ class Element extends BaseNode {
 
     public var namespaceURI(get, null):Null<String>;
     public var prefix(get, null):Null<String>;
-    public var localName(get, null):String;
+    public var localName(default, null):String;
     public var tagName(get, null):String;
     public var attributes(get, null):NamedNodeMap;
 
@@ -42,10 +42,6 @@ class Element extends BaseNode {
 
     private inline function get_prefix():Null<String> {
         return this.prefix;
-    }
-
-    private inline function get_localName():String {
-        return this.localName;
     }
 
     private inline function get_tagName():String {

@@ -3,6 +3,8 @@ package uhx.mo.dom.nodes;
 import uhx.mo.html.tree.NodePtr;
 import be.ds.interfaces.IIdentity;
 import be.ds.interfaces.IComparable;
+import uhx.mo.html.internal.HtmlTag;
+import uhx.mo.html.internal.Category;
 
 /**
     @see https://dom.spec.whatwg.org/#trees
@@ -387,6 +389,32 @@ class NodeUtil {
 
         return true;
 
+    }
+
+    /**
+        Non spec helper
+    **/
+    public static function categoryType(node:Node):Int {
+        return switch node.nodeName {
+            case 'address' | 'applet' | 'area' | 'article' | 'aside' | 'base' | 'basefont' | 'bgsound'
+                | 'blockquote' | 'body' | 'br' | 'button' | 'caption' | 'center' | 'col' | 'colgroup'
+                | 'dd' | 'details' | 'dir' | 'div' | 'dl' | 'dt' | 'embed' | 'fieldset'
+                | 'figcaption' | 'figure' | 'footer' | 'form' | 'frame' | 'frameset' 
+                | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'head' | 'header' | 'hgroup'
+                | 'iframe' | 'img' | 'input' | 'keygen' | 'li' | 'link' | 'listing' | 'main'
+                | 'marquee' | 'menu' | 'meta' | 'nav' | 'noembed' | 'noframes' | 'noscript'
+                | 'object' | 'ol' | 'p' | 'param' | 'plaintext' | 'pre' | 'script' | 'section'
+                | 'select' | 'source' | 'style' | 'summary' | 'table' | 'tbody' | 'td'
+                | 'tempalte' | 'textarea' | 'tfoot' | 'th' | 'thead' | 'title' | 'tr' | 'track'
+                | 'ul' | 'wbr' | 'xmp' | /**mathml**/ 'mi' | 'mo' | 'mn' | 'ms' | 'mtext' 
+                | 'annotation-xml' | /**svg**/ 'foreignObject' | 'desc' /*| 'title'*/:
+                0;
+            case 'a' | 'b' | 'big' | 'code' | 'em' | 'font' | 'i' | 'nobr' | 's' | 'small' | 'strike' | 'strong' | 'tt' | 'u':
+                1;
+            case _:
+                2;
+        }
+        
     }
 
 }

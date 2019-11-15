@@ -752,20 +752,129 @@ class InsertionRules {
                 if (tag.name == 'html') process(token, maker);
 
             case Keyword(StartTag(tag)) if (["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"].indexOf(tag.name) > -1):
-                // TODO case
+                var paragraph:Element = null;
+                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
+                    break;
+                }
+
+                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                    maker.closeParagraphElement();
+
+                }
+
+                maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (["h1", "h2", "h3", "h4", "h5", "h6"].indexOf(tag.name) > -1):
-                // TODO case
+                var paragraph:Element = null;
+                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
+                    break;
+                }
+
+                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                    maker.closeParagraphElement();
+
+                }
+
+                switch maker.currentNode.nodeName {
+                    case 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6':
+                        maker.handleParseError('Parse error.');
+                        maker.openElements.pop();
+
+                    case _:
+
+                }
+
+                maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (tag.name == 'pre' || tag.name == 'listing'):
-                // TODO case
+                var paragraph:Element = null;
+                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
+                    break;
+                }
+
+                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                    maker.closeParagraphElement();
+
+                }
+
+                maker.insertHtmlElement(tag);
+
+                if (maker.tokenizer.nextInputCharacter == '\u000A') {
+                    @:privateAccess maker.tokenizer.pos += 2;
+                }
+
+                // TODO: set frameset-ok flag `not ok`.
 
             case Keyword(StartTag(tag)) if (tag.name == 'form'):
+                var hasTemplate = false;
+                for (id in maker.openElements) if (id.get().nodeName == 'template') {
+                    hasTemplate = true;
+                    break;
+                }
+
+                if (maker.document.formPtr != null && !hasTemplate) {
+                    maker.handleParseError('Parse error.');
+
+                } else {
+                    if (maker.hasElementInButtonScope('p')) {
+                        maker.closeParagraphElement();
+                    }
+
+                    if (!hasTemplate) {
+                        maker.document.formPtr = maker.insertHtmlElement(tag).id;
+
+                    }
+
+                }
         
             case Keyword(StartTag(tag)) if (tag.name == 'li'):
+                // TODO: set frameset-ok flag to `not ok`.
+                var index = maker.openElements.length - 1;
+                var node = maker.openElements[index].get();
+                var state = true;
+                while (true) {
+                    switch state {
+                        case true: /**loop**/
+                            if (node.nodeName == 'li') {
+                                maker.generateImpliedEndTags(['li']);
+
+                                if (maker.currentNode.nodeName != 'li') {
+                                    maker.handleParseError('Parse error.');
+
+                                }
+
+                                while (maker.openElements.length > 0) {
+                                    var node = maker.openElements.pop().get();
+                                    if (node.nodeName == 'li') break;
+                                }
+
+                                state = false;
+
+                            } else if (node.categoryType() == 0 && ['address', 'div', 'p'].indexOf(node.nodeName) == -1) {
+                                state = false;    
+
+                            } else {
+                                index--;
+                                node = maker.openElements[index];
+
+                            }
+
+                        case false: /**done**/
+                            if (maker.hasElementInButtonScope('p')) {
+                                maker.closeParagraphElement();
+
+                            }
+
+                            break;
+
+                    }
+                    
+                }
+
+                maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (tag.name == 'dd' || tag.name == 'dt'):
-
+                ->
             case Keyword(StartTag(tag)) if (tag.name == 'plaintext'):
 
             case Keyword(StartTag(tag)) if (tag.name == 'button'):

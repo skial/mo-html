@@ -126,11 +126,11 @@ class Tokenizer extends Lexer {
     }
 
     public inline function emitString(value:String):Void {
-        emitToken( Const(CString(value)) );
+        emitToken( Keyword(Character({data:value})) );
     }
 
     public inline function flushAsCharacterReference() {
-       emitToken( Const(CString(temporaryBuffer)) );
+       emitToken( Keyword(Character({data:temporaryBuffer})) );
     }
 
     public function isAppropiateEndTag():Bool {
