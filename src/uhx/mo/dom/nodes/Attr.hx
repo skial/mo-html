@@ -3,8 +3,8 @@ package uhx.mo.dom.nodes;
 import be.ds.util.Counter;
 import uhx.mo.html.tree.NodePtr;
 
-// @:see https://dom.spec.whatwg.org/#attr
-// @:see https://developer.mozilla.org/en-US/docs/Web/API/Attr
+// @see https://dom.spec.whatwg.org/#attr
+// @see https://developer.mozilla.org/en-US/docs/Web/API/Attr
 class Attr extends BaseNode {
 
     public function new(name:String, ?namespace:String, ?prefix:String, ?value:String = '', ?element:Element) {
@@ -31,7 +31,7 @@ class Attr extends BaseNode {
     }
 
     // Attr
-    // @:see https://dom.spec.whatwg.org/#attr
+    // @see https://dom.spec.whatwg.org/#attr
 
     public var namespaceURI(get, null):Null<String>;
     public var prefix(get, null):Null<String>;
@@ -65,7 +65,7 @@ class Attr extends BaseNode {
         return this.ownerElement;
     }
 
-    // @:see https://dom.spec.whatwg.org/#concept-element-qualified-name
+    // @see https://dom.spec.whatwg.org/#concept-element-qualified-name
     public function qualifiedName():String {
         return prefix == null ? localName : '$prefix:$localName';
     }

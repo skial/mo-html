@@ -13,11 +13,11 @@ enum abstract InsertionMode(Int) to Int {
     public var InTable;
     public var InTableText;
     public var InCaption;
-    public var InColumGroup;
+    public var InColumnGroup;
     public var InTableBody;
     public var InRow;
     public var InCell;
-    public var inSelect;
+    public var InSelect;
     public var InSelectInTable;
     public var InTemplate;
     public var AfterBody;

@@ -161,14 +161,23 @@ class BaseNode implements Node {
         return this;
     }
 
-    // @see https://dom.spec.whatwg.org/#dom-node-isequalnode
-    public function isEqualNode(?otherNode:Node):Bool {
-        return false;
+    /**
+        @see https://dom.spec.whatwg.org/#dom-node-isequalnode
+        The isEqualNode(otherNode) method, when invoked, must return true 
+        if otherNode is non-null and context object equals otherNode, and 
+        false otherwise.
+    **/
+    public inline function isEqualNode(?otherNode:Node):Bool {
+        return otherNode != null && this.equals(otherNode);
     }
 
-    // @see https://dom.spec.whatwg.org/#dom-node-issamenode
-    public function isSameNode(?otherNode:Node):Bool {
-        return false;
+    /**
+        @see https://dom.spec.whatwg.org/#dom-node-issamenode
+        The isSameNode(otherNode) method, when invoked, must return true if 
+        otherNode is context object, and false otherwise.
+    **/
+    public inline function isSameNode(?otherNode:Node):Bool {
+        return this.id == otherNode.id;
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-comparedocumentposition

@@ -315,4 +315,78 @@ class NodeUtil {
         return node.length == 0;
     }
 
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-equals
+    **/
+    public static function equals(nodeA:Node, nodeB:Node):Bool {
+        if (nodeA.nodeType != nodeB.nodeType) return false;
+
+        var check = switch nodeA.nodeType {
+            case NodeType.DocumentType:
+                var docA = (cast nodeA:DocumentType);
+                var docB = (cast nodeB:DocumentType);
+                docA.name == docB.name &&
+                docA.publicId == docB.publicId &&
+                docA.systemId == docB.systemId;
+
+            case NodeType.Element:
+                var eleA = (cast nodeA:Element);
+                var eleB = (cast nodeB:Element);
+                eleA.namespaceURI == eleB.namespaceURI &&
+                eleA.prefix == eleB.prefix &&
+                eleA.localName == eleB.localName &&
+                eleA.attributes.length == eleB.attributes.length;
+
+            case NodeType.Attribute:
+                var attrA = (cast nodeA:Attr);
+                var attrB = (cast nodeB:Attr);
+                attrA.namespaceURI == attrB.namespaceURI &&
+                attrA.localName == attrB.localName &&
+                attrA.value == attrB.value;
+
+            case NodeType.ProcessingInstruction:
+                var proA = (cast nodeA:ProcessingInstruction);
+                var proB = (cast nodeB:ProcessingInstruction);
+                proA.nodeName == proB.nodeName && proA.nodeValue == proB.nodeValue;
+
+            case NodeType.Text, NodeType.Comment:
+                nodeA.nodeValue == nodeB.nodeValue;
+
+            case _:
+                false;
+        }
+
+        if (!check) return false;
+
+        if (nodeA.nodeType == NodeType.Element) {
+            var eleA = (cast nodeA:Element).attributes.self();
+            var eleB = (cast nodeB:Element).attributes.self();
+
+            for (attrA in eleA) {
+                var exists = false;
+
+                for (attrB in eleB) if (attrA.equals(attrB)) {
+                    exists = true;
+                    break;
+                }
+
+                if (!exists) return false;
+                
+            }
+
+        }
+
+        if (nodeA.childrenPtr.length != nodeB.childrenPtr.length) return false;
+
+        for (index in 0...nodeA.childrenPtr.length) {
+            var childA = nodeA.childrenPtr[index].get();
+            var childB = nodeB.childrenPtr[index].get();
+            if (!childA.equals(childB)) return false;
+
+        }
+
+        return true;
+
+    }
+
 }

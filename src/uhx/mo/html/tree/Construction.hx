@@ -10,6 +10,7 @@ import uhx.mo.html.rules.Rules;
 import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.nodes.NodeType;
 import uhx.mo.html.parsing.InsertionRules;
+import uhx.mo.html.parsing.FormattingElements;
 
 using uhx.mo.html.macros.AbstractTools;
 
@@ -54,7 +55,7 @@ class Construction {
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#the-list-of-active-formatting-elements
     **/
-    public var activeFormattingElements:Array<NodePtr> = [];
+    public var activeFormattingElements:FormattingElements = new FormattingElements();
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#the-element-pointers
     public var headPointer:Null<Any> = null;
@@ -259,6 +260,62 @@ class Construction {
     **/
     public inline function insertHtmlElement(tag:Tag):Element {
         return insertForeignContent(tag, Namespaces.HTML);
+    }
+
+    // openElement helper methods
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-the-specific-scope
+    **/
+    public function hasElementInSpecificScope(target:Node, list:Array<String>):Bool {
+        var index = openElements.length -1;
+        var node = openElements[index];
+
+        while (true) {
+            if (node == target.id) return true;
+
+            if (list.indexOf(node.get().nodeName) > -1) return false;
+
+            index--;
+            node = openElements[index];
+        }
+
+        return false;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
+    **/
+    public function hasElementInScope():Bool {
+        return false;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-list-item-scope
+    **/
+    public function hasElementInListItemScope():Bool {
+        return false;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-button-scope
+    **/
+    public function hasElementInButtonScope():Bool {
+        return false;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-table-scope
+    **/
+    public function hasElementInTableScope():Bool {
+        return false;
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-select-scope
+    **/
+    public function hasElementInSelectScope():Bool {
+        return false;
     }
 
 }
