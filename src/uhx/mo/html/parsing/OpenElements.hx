@@ -18,6 +18,10 @@ abstract OpenElements(Array<NodePtr>) {
         return this[index];
     };
 
+    @:op([]) public inline function set(index:Int, value:NodePtr):Void {
+        this[index] = value;
+    }
+
 }
 
 class OpenElementsUtil {

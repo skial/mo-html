@@ -206,8 +206,86 @@ class InsertionRules {
 
             /**12**/
             var commonAncestor = maker.openElements[index-1];
-            // TODO finish step 12+
+            /**13**/ // TODO: this might not work out correctly depending on spec.
+            var bookmark = maker.activeFormattingElements.indexOf(formattingElement.id);
+            /**14**/
+            var node = furthestBlock;
+            var lastNode = furthestBlock;
+            var innerLoop = 0;
+            while (true) {
+                /**2**/
+                innerLoop += 1;
+                /**3**/
+                var index = maker.openElements.indexOf(node.id);
+                if (index > 0) {
+                    node = maker.openElements[index - 1];
+
+                } else {
+                    // TODO: needs to cache openelements before modification
+
+                }
+                /**
+                    4. If node is formatting element, then go to the next step 
+                    in the overall algorithm.
+                    ---
+                    I'm assuming this means break out of this inner loop.
+                **/
+                if (node.id == formattingElement.id) {
+                    break;
+                }
+
+                /**5**/
+                if (innerLoop > 3 && maker.activeFormattingElements.has(node.id)) {
+                    maker.activeFormattingElements.remove(node.id);
+
+                } /**6**/ else if (!maker.activeFormattingElements.has(node.id)) {
+                    maker.openElements.remove(node.id);
+                    continue;
+
+                }
+
+                /**7**/
+                var newNode = maker.createAnElementForToken(tag, Namespaces.HTML, commonAncestor);
+                maker.activeFormattingElements[index] = newNode;
+                maker.openElements[maker.openElements.indexOf(node.id)] = newNode.id;
+                node = newNode;
+
+                /**8**/
+                if (lastNode.id == furthestBlock.id) {
+                    bookmark = index + 1;
+                }
+
+                /**9**/
+                node.appendChild(lastNode);
+                
+                /**10**/
+                lastNode = node;
+            }
+
+            /**15**/
+            maker.appropriateInsertionPoint(commonAncestor).insert(lastNode);
+
+            /**16**/
+            var newNode = maker.createAnElementForToken(tag, Namespaces.HTML, furthestBlock);
+
+            /**17**/
+            newNode.childrenPtr = furthestBlock.childrenPtr.copy();
+
+            /**18**/
+            furthestBlock.childrenPtr = [newNode.id];
+
+            /**19**/
+            maker.activeFormattingElements.remove(formattingElement.id);
+            maker.activeFormattingElements[bookmark] = newNode.id;
+
+            /**20**/
+            maker.openElements.remove(formattingElement.id);
+            maker.openElements.insert(maker.openElements.indexOf(furthestBlock.id) + 1, newNode);
+
+            /**21**/
+            // Back to top.
         }
+
     }
 
     private var selection:Array<Token<HtmlTokens>->Construction->Void>;

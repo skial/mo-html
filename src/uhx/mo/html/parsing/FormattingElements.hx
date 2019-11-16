@@ -15,7 +15,8 @@ private enum abstract ReconstructPhase(Int) to Int from Int {
 /**
     @see https://html.spec.whatwg.org/multipage/parsing.html#the-list-of-active-formatting-elements
 **/
-abstract FormattingElements(Array<Element>) {
+@:forward(indexOf, lastIndexOf, remove)
+abstract FormattingElements(Array<NodePtr>) {
     
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#list-of-active-formatting-elements
@@ -24,26 +25,27 @@ abstract FormattingElements(Array<Element>) {
         this = [];
     }
 
-    public function has(node:NodePtr):Bool {
-        for (n in this) {
+    public inline function has(node:NodePtr):Bool {
+        return this.indexOf(node) > -1;
+        /*for (n in this) {
             if (n.id == node) return true;
 
         }
 
-        return false;
+        return false;*/
     }
 
     public function get(nodeName:String):Null<Element> {
         var start = 0;
         var end = this.length -1;
 
-        for (index in 0...this.length) if (this[end-index].flags.isSet(FormatType.Marker)) {
+        for (index in 0...this.length) if (this[end-index].get().flags.isSet(FormatType.Marker)) {
             start = index;
             break;
         }
 
         for (index in start...end) {
-            if (this[index].nodeName == nodeName) return this[index];
+            if (this[index].get().nodeName == nodeName) return cast this[index].get();
         }
 
         return null;
@@ -53,7 +55,7 @@ abstract FormattingElements(Array<Element>) {
         return get(nodeName) != null;
     }
 
-    public function remove(node:NodePtr):Void {
+    /*public function remove(node:NodePtr):Void {
         for (index in 0...this.length) {
             if (this[index].id == node) {
                 this.splice(index, 1);
@@ -62,7 +64,7 @@ abstract FormattingElements(Array<Element>) {
             }
 
         }
-    }
+    }*/
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#push-onto-the-list-of-active-formatting-elements
@@ -73,7 +75,7 @@ abstract FormattingElements(Array<Element>) {
 
             var lastMarker = -1;
             var length = (this.length-1);
-            for (index in 0...this.length) if (this[length-index].flags.isSet(FormatType.Marker)) {
+            for (index in 0...this.length) if (this[length-index].get().flags.isSet(FormatType.Marker)) {
                 lastMarker = index;
                 break;
             }
@@ -91,7 +93,7 @@ abstract FormattingElements(Array<Element>) {
             }
 
             for (index in start...end) {
-                var n1 = this[index];
+                var n1:Element = cast this[index].get();
                 var n2 = v;
                 var check = 
                     n1.nodeName == n2.nodeName && 
@@ -131,7 +133,7 @@ abstract FormattingElements(Array<Element>) {
 
         }
 
-        this.push(v);
+        this.push(v.id);
     }
 
     /**
@@ -142,10 +144,14 @@ abstract FormattingElements(Array<Element>) {
         
         var entry = this.length - 1;
         
-        if (this[entry].flags.isSet(FormatType.Marker)) {
+        if (this[entry].get().flags.isSet(FormatType.Marker)) {
             return;
+
         } else {
-            if (Construction.current.openElements.indexOf(this[entry].id) > -1) return;
+            if (Construction.current.openElements.indexOf(this[entry]) > -1) {
+                return;
+
+            }
             
         }
         
@@ -158,7 +164,7 @@ abstract FormattingElements(Array<Element>) {
 
                     } else {
                         entry = entry-1;
-                        if (this[entry].flags.isSet(FormatType.Marker) || Construction.current.openElements.indexOf(this[entry].id) > -1) {
+                        if (this[entry].get().flags.isSet(FormatType.Marker) || Construction.current.openElements.indexOf(this[entry]) > -1) {
                             state = Rewind;
 
                         }
@@ -169,14 +175,15 @@ abstract FormattingElements(Array<Element>) {
                     entry++;
 
                 case Create:
+                    var old:Element = cast this[entry].get();
                     var element = Construction.current.insertHtmlElement({
-                        name:this[entry].nodeName, 
-                        attributes:[for (a in this[entry].attributes.self()) { name:a.name, value:a.value }], 
-                        selfClosing:false
+                        name: old.nodeName, 
+                        attributes: [for (a in old.attributes.self()) { name:a.name, value:a.value }], 
+                        selfClosing: false
                     });
 
-                    if (this[entry].flags.isSet(FormatType.Marker)) element.flags.set(FormatType.Marker);
-                    this[entry] = element;
+                    if (old.flags.isSet(FormatType.Marker)) element.flags.set(FormatType.Marker);
+                    this[entry] = element.id;
                     
                     if (entry != this.length-1) state = Advance;
 
@@ -189,9 +196,17 @@ abstract FormattingElements(Array<Element>) {
     **/
     public function clear():Void {
         while (this.length > 0) {
-            if (this.pop().flags.isSet(FormatType.Marker)) break;
+            if (this.pop().get().flags.isSet(FormatType.Marker)) break;
 
         }
+    }
+
+    @:op([]) public inline function read(index:Int):Null<Element> {
+        return cast this[index].get();
+    }
+
+    @:op([]) public inline function writePtr(index:Int, value:NodePtr):Void {
+        this[index] = value;
     }
 
 }
