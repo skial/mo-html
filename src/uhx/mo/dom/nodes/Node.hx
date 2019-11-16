@@ -1,5 +1,6 @@
 package uhx.mo.dom.nodes;
 
+import bits.Bits;
 import uhx.mo.html.tree.NodePtr;
 import be.ds.interfaces.IIdentity;
 import be.ds.interfaces.IComparable;
@@ -18,6 +19,8 @@ import uhx.mo.html.internal.Category;
 @:remove
 @:using(uhx.mo.dom.nodes.Node.NodeUtil)
 interface Node extends IComparable<Node> extends IIdentity {
+
+    public var flags:Bits;
 
     public var parentPtr:NodePtr;
     public var firstChildPtr:NodePtr;
@@ -393,6 +396,7 @@ class NodeUtil {
 
     /**
         Non spec helper
+        @see https://html.spec.whatwg.org/multipage/parsing.html#special
     **/
     public static function categoryType(node:Node):Int {
         return switch node.nodeName {
@@ -408,11 +412,11 @@ class NodeUtil {
                 | 'tempalte' | 'textarea' | 'tfoot' | 'th' | 'thead' | 'title' | 'tr' | 'track'
                 | 'ul' | 'wbr' | 'xmp' | /**mathml**/ 'mi' | 'mo' | 'mn' | 'ms' | 'mtext' 
                 | 'annotation-xml' | /**svg**/ 'foreignObject' | 'desc' /*| 'title'*/:
-                0;
+                0;  /**special**/
             case 'a' | 'b' | 'big' | 'code' | 'em' | 'font' | 'i' | 'nobr' | 's' | 'small' | 'strike' | 'strong' | 'tt' | 'u':
-                1;
+                1;  /**formatting**/
             case _:
-                2;
+                2;  /**ordinary**/
         }
         
     }

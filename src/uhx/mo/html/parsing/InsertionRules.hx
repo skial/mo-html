@@ -1,13 +1,16 @@
 package uhx.mo.html.parsing;
 
-import uhx.mo.dom.nodes.Attr;
-import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.Tree;
 import uhx.mo.dom.nodes.Node;
+import uhx.mo.dom.nodes.Attr;
+import uhx.mo.html.rules.Rules;
+import uhx.mo.infra.Namespaces;
 import uhx.mo.html.internal.Tag;
 import uhx.mo.dom.nodes.Comment;
 import uhx.mo.dom.nodes.Element;
 import uhx.mo.dom.nodes.Document;
+import uhx.mo.dom.nodes.NodeType;
+import uhx.mo.html.flags.FormatType;
 import uhx.mo.dom.nodes.DocumentType;
 import uhx.mo.html.tree.Construction;
 import uhx.mo.html.internal.HtmlTokens;
@@ -136,6 +139,77 @@ class InsertionRules {
         }
     }
 
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
+    **/
+    private function adoptionAgencyAlgorithm(tag:Tag, maker:Construction) {
+        /**1**/
+        var subject = tag.name;
+        var currentNode = maker.currentNode;
+
+        /**2**/
+        if (currentNode.nodeType == NodeType.Element && currentNode.nodeName == subject && !maker.activeFormattingElements.has(currentNode.id)) {
+            maker.openElements.pop();
+            return;
+
+        }
+
+        /**3**/
+        var outerLoop = 0;
+
+        /**4**/
+        while (outerLoop <= 8) {
+            /**5**/
+            outerLoop += 1;
+            /**6**/
+            var formattingElement = maker.activeFormattingElements.get(subject);
+            if (formattingElement == null) return; // TODO:
+            var formattingNode = formattingElement;
+
+            /**7**/
+            var index = maker.openElements.lastIndexOf(formattingNode.id);
+            if (index == -1) {
+                maker.handleParseError('Parse error.');
+                maker.activeFormattingElements.remove(formattingNode.id);
+                return;
+
+            } /**8**/ else {
+                if (!maker.openElements.hasElementInScope(formattingNode.nodeName)) {
+                    maker.handleParseError('Parse error.');
+                    return;
+
+                }
+
+            }
+
+            /**9**/
+            if (formattingNode.id != maker.currentNode.id) {
+                maker.handleParseError('Parse error.');
+
+            }
+
+            /**10**/
+            var furthestBlock:Null<Node> = null;
+            for (ptr in maker.openElements) {
+                if ((furthestBlock = ptr.get()).categoryType() == 0) {
+                    break;
+                }
+            }
+
+            /**11**/
+            if (furthestBlock == null) {
+                maker.openElements.popUntilKnown(formattingNode.id);
+                maker.activeFormattingElements.remove(formattingNode.id);
+                return;
+
+            }
+
+            /**12**/
+            var commonAncestor = maker.openElements[index-1];
+            // TODO finish step 12+
+        }
+    }
+
     private var selection:Array<Token<HtmlTokens>->Construction->Void>;
 
     public function new() {
@@ -148,6 +222,8 @@ class InsertionRules {
     }
 
     public inline function process(token:Token<HtmlTokens>, maker:Construction):Void {
+        trace( insertionMode );
+        trace( selection[insertionMode] );
         selection[insertionMode](token, maker);
     }
 
@@ -462,7 +538,8 @@ class InsertionRules {
 
             case Keyword(StartTag(tag)) if (tag.name == 'template'):
                 var ele = maker.insertHtmlElement(tag);
-                maker.activeFormattingElements.push( Marker(ele) );
+                ele.flags.set(FormatType.Marker);
+                maker.activeFormattingElements.push( ele );
                 // TODO: set frameset-ok to `not ok`
                 insertionMode = InTemplate;
                 stackOfTemplateInsertionModes.push(InTemplate);
@@ -618,12 +695,7 @@ class InsertionRules {
             case Keyword(StartTag(tag)) if (tag.name == 'html'):
                 maker.handleParseError('Parse error.');
                 
-                var template:Element = null;
-                for (id in maker.openElements) if ((template = cast id.get()).nodeName == 'template') {
-                    break;
-                }
-
-                if (template != null) {
+                if (maker.openElements.exists('template')) {
                     var top:Element = cast maker.openElements[0];
                     for (attribute in tag.attributes) {
                         var exists = false;
@@ -651,14 +723,8 @@ class InsertionRules {
                 if (maker.openElements[1].get().nodeName != 'body' || maker.openElements.length == 1) {
                     // Ignore the token.
                 }
-
-                var hasTemplate = false;
-                for (id in maker.openElements) if (id.get().nodeName == 'template') {
-                    hasTemplate = true;
-                    break;
-                }
-
-                if (!hasTemplate) {
+                
+                if (!maker.openElements.exists('template')) {
                     // TODO: set frameset-ok flag `not ok`.
                     var body:Element = cast maker.openElements[1].get();
                     for (attribute in tag.attributes) {
@@ -697,7 +763,7 @@ class InsertionRules {
                     }
 
                     if (rootIndex == -1) {
-                        maker.openElements = [];
+                        maker.openElements = new OpenElements();
 
                     } else {
                         maker.openElements.splice(rootIndex+1, maker.openElements.length);
@@ -727,15 +793,7 @@ class InsertionRules {
                 }
 
             case Keyword(EndTag(tag)) if (tag.name == 'body' || tag.name == 'html'):
-                var hasBodyInScope = false;
-                for (ptr in maker.openElements) {
-                    if (ptr.get().nodeName == 'body') {
-                        hasBodyInScope = true;
-                        break;
-                    }
-                }
-
-                if (!hasBodyInScope) {
+                if (!maker.openElements.exists('body')) {
                     maker.handleParseError('Parse error. Ignore the token.');
 
                 } else {
@@ -752,12 +810,7 @@ class InsertionRules {
                 if (tag.name == 'html') process(token, maker);
 
             case Keyword(StartTag(tag)) if (["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"].indexOf(tag.name) > -1):
-                var paragraph:Element = null;
-                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
-                    break;
-                }
-
-                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                if (maker.openElements.exists('p') && maker.openElements.hasElementInButtonScope('p')) {
                     maker.closeParagraphElement();
 
                 }
@@ -765,12 +818,7 @@ class InsertionRules {
                 maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (["h1", "h2", "h3", "h4", "h5", "h6"].indexOf(tag.name) > -1):
-                var paragraph:Element = null;
-                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
-                    break;
-                }
-
-                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                if (maker.openElements.exists('p') && maker.openElements.hasElementInButtonScope('p')) {
                     maker.closeParagraphElement();
 
                 }
@@ -787,12 +835,7 @@ class InsertionRules {
                 maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (tag.name == 'pre' || tag.name == 'listing'):
-                var paragraph:Element = null;
-                for (id in maker.openElements) if ((paragraph = cast id.get()).nodeName == 'p') {
-                    break;
-                }
-
-                if (paragraph != null && maker.hasElementInButtonScope('p')) {
+                if (maker.openElements.exists('p') && maker.openElements.hasElementInButtonScope('p')) {
                     maker.closeParagraphElement();
 
                 }
@@ -806,17 +849,13 @@ class InsertionRules {
                 // TODO: set frameset-ok flag `not ok`.
 
             case Keyword(StartTag(tag)) if (tag.name == 'form'):
-                var hasTemplate = false;
-                for (id in maker.openElements) if (id.get().nodeName == 'template') {
-                    hasTemplate = true;
-                    break;
-                }
+                var hasTemplate = maker.openElements.exists('template');
 
                 if (maker.document.formPtr != null && !hasTemplate) {
                     maker.handleParseError('Parse error.');
 
                 } else {
-                    if (maker.hasElementInButtonScope('p')) {
+                    if (maker.openElements.hasElementInButtonScope('p')) {
                         maker.closeParagraphElement();
                     }
 
@@ -843,10 +882,7 @@ class InsertionRules {
 
                                 }
 
-                                while (maker.openElements.length > 0) {
-                                    var node = maker.openElements.pop().get();
-                                    if (node.nodeName == 'li') break;
-                                }
+                                maker.openElements.popUntilNamed('li');
 
                                 state = false;
 
@@ -860,7 +896,7 @@ class InsertionRules {
                             }
 
                         case false: /**done**/
-                            if (maker.hasElementInButtonScope('p')) {
+                            if (maker.openElements.hasElementInButtonScope('p')) {
                                 maker.closeParagraphElement();
 
                             }
@@ -874,28 +910,192 @@ class InsertionRules {
                 maker.insertHtmlElement(tag);
 
             case Keyword(StartTag(tag)) if (tag.name == 'dd' || tag.name == 'dt'):
-                ->
+                // Set frameset-ok to `not ok`
+                var index = maker.openElements.length - 1;
+                var node = maker.currentNode;
+                var state = false;
+
+                while (maker.openElements.length > 0) {
+                    switch state {
+                        case false: /**loop**/
+
+                        switch node.nodeName {
+                            case 'dd' | 'dt':
+                                maker.generateImpliedEndTags([tag.name]);
+                                if (maker.currentNode.nodeName != tag.name) {
+                                    maker.handleParseError('Parse error.');
+
+                                }
+
+                                maker.openElements.popUntilNamed(tag.name);
+
+                                state = true;
+
+                            case _:
+                                if (node.categoryType() == 0 && ['address', 'div', 'p'].indexOf(node.nodeName) == -1) {
+                                    state = true;
+
+                                } else {
+                                    index--;
+                                    node = maker.openElements[index];
+
+                                }
+
+                        }
+
+                        case true: /**done**/
+                            if (maker.openElements.hasElementInButtonScope('p')) {
+                                maker.closeParagraphElement();
+
+                            }
+
+                            break;
+
+                    }
+
+                }
+
+                maker.insertHtmlElement(tag);
+
             case Keyword(StartTag(tag)) if (tag.name == 'plaintext'):
+                if (maker.openElements.hasElementInButtonScope('p')) {
+                    maker.closeParagraphElement();
+
+                }
+
+                maker.insertHtmlElement(tag);
+                maker.tokenizer.backpressure.push( Rules.plaintext_state );
 
             case Keyword(StartTag(tag)) if (tag.name == 'button'):
+                if (maker.openElements.hasElementInScope('button')) {
+                    maker.handleParseError('Parse error.');
+                    maker.generateImpliedEndTags([]);
+                    maker.openElements.popUntilNamed('button');
+                }
+
+                maker.activeFormattingElements.reconstruct();
+                maker.insertHtmlElement(tag);
+                // set frameset-ok `not ok`.
 
             case Keyword(EndTag(tag)) if (["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"].indexOf(tag.name) > -1):
-                // TODO case
+                if (!maker.openElements.hasElementInScope(tag.name)) {
+                    maker.handleParseError('Parse error.');
+                    // Ignore the token.
+
+                } else {
+                    maker.generateImpliedEndTags([]);
+                    if (maker.currentNode.nodeName == tag.name) {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.popUntilNamed(tag.name);
+
+                }
 
             case Keyword(EndTag(tag)) if (tag.name == 'form'):
+                if (!maker.openElements.exists('template')) {
+                    var node = maker.document.formPtr;
+                    maker.document.formPtr = null;
+
+                    if (node == null || (node != null && !maker.openElements.hasElementInScope(node.get().nodeName))) {
+                        maker.handleParseError('Parse error.');
+                        // Ignore the token.
+                        return;
+                    }
+
+                    maker.generateImpliedEndTags([]);
+                    if (maker.currentNode != null && maker.currentNode != node) {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.remove( node );
+
+                } else {
+                    if (maker.openElements.hasElementInScope('form')) {
+                        maker.handleParseError('Parse error.');
+                        // Ignore the token.
+                        return;
+                    }
+
+                    maker.generateImpliedEndTags([]);
+
+                    if (maker.currentNode.nodeName != 'form') {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.popUntilNamed('form');
+
+                }
 
             case Keyword(EndTag(tag)) if (tag.name == 'p'):
+                if (!maker.openElements.hasElementInButtonScope('p')) {
+                    maker.handleParseError('Parse error.');
+                    maker.insertHtmlElement(tag);
+                }
+
+                maker.closeParagraphElement();
 
             case Keyword(EndTag(tag)) if (tag.name == 'li'):
+                if (!maker.openElements.hasElementInListItemScope('li')) {
+                    maker.handleParseError('Parse error.');
+                    // Ignore the token.
+
+                } else {
+                    maker.generateImpliedEndTags(['li']);
+                    if (maker.currentNode.nodeName != 'li') {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.popUntilNamed('li');
+
+                }
 
             case Keyword(EndTag(tag)) if (tag.name == 'dd' || tag.name == 'dt'):
+                if (!maker.openElements.hasElementInScope(tag.name)) {
+                    maker.handleParseError('Parse error.');
+                    // Ignore the token.
+
+                } else {
+                    maker.generateImpliedEndTags([tag.name]);
+                    if (maker.currentNode.nodeName != tag.name) {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.popUntilNamed(tag.name);
+
+                }
 
             case Keyword(EndTag(tag)) if (["h1", "h2", "h3", "h4", "h5", "h6"].indexOf(tag.name) > -1):
-                // TODO case
+                if (!maker.openElements.hasElementInScope(tag.name)) {
+                    maker.handleParseError('Parse error.');
+                    // Ignore the token.
 
-            case Keyword(EndTag(tag)) if (tag.name == 'sarcasm'):
+                } else {
+                    maker.generateImpliedEndTags([]);
+                    if (maker.currentNode.nodeName != tag.name) {
+                        maker.handleParseError('Parse error.');
+
+                    }
+
+                    maker.openElements.popUntilNamed(tag.name);
+
+                }
+
+            /*case Keyword(EndTag(tag)) if (tag.name == 'sarcasm'):
+                /**
+                    Take a deep breath, then act as described in the "any other end tag" entry below.
+                **/
 
             case Keyword(StartTag(tag)) if (tag.name == 'a'):
+                if (maker.activeFormattingElements.exists('a')) {
+                    maker.handleParseError('Parse error.');
+
+                }
 
             case Keyword(StartTag(tag)) if (["b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt", "u"].indexOf(tag.name) > -1):
 

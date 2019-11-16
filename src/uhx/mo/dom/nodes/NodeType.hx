@@ -1,7 +1,9 @@
 package uhx.mo.dom.nodes;
 
+/**
+    @see https://dom.spec.whatwg.org/#node
+**/
 enum abstract NodeType(Int) from Int to Int {
-	public var Unknown = 0;
 	public var Element = 1;
 	public var Attribute = 2;
 	public var Text = 3;

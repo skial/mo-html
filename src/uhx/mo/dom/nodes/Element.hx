@@ -8,6 +8,8 @@ import uhx.mo.html.tree.NodePtr;
 class Element extends BaseNode {
 
     public function new(?prefix:String, ?localName:String, customElementState:String = 'uncustomized', ?customElementDefinition:{}, ?is:String, document:Document) {
+        this.prefix = prefix;
+        this.localName = localName;
         this.tagName = '';
         this.attributes = new NamedNodeMap([]);
         super(document);
@@ -32,7 +34,7 @@ class Element extends BaseNode {
 
     public var namespaceURI(get, null):Null<String>;
     public var prefix(get, null):Null<String>;
-    public var localName(default, null):String;
+    public var localName(default, null):String = '';
     public var tagName(get, null):String;
     public var attributes(get, null):NamedNodeMap;
 

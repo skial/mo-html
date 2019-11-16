@@ -22,13 +22,13 @@ class Rules implements uhx.mo.RulesCache {
 		'<' => lexer -> lexer.tokenize( tag_open_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 		'' => lexer -> {
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 	] );
 
@@ -36,13 +36,13 @@ class Rules implements uhx.mo.RulesCache {
     public static var plaintext_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString(lexer.current));
+			Keyword(Character({data:lexer.current}));
 		},
 	] );
 
@@ -59,13 +59,13 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 	] );
 
@@ -172,13 +172,13 @@ class Rules implements uhx.mo.RulesCache {
 		'<' => lexer -> lexer.tokenize( rawtext_less_than_sign_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 	] );
 
@@ -350,7 +350,7 @@ class Rules implements uhx.mo.RulesCache {
 				lexer.tokenize( ambiguous_ampersand_state );
 
 			} else {
-				Const(CString(lexer.currentInputCharacter));
+				Keyword(Character({data:lexer.currentInputCharacter}));
 
 			}
 		},
@@ -2005,12 +2005,12 @@ class Rules implements uhx.mo.RulesCache {
 		'<' => lexer -> lexer.tokenize( script_data_less_than_sign_state ),
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			EOF;
 		},
-		'[^&<]' => lexer -> Const(CString(lexer.currentInputCharacter)),
+		'[^&<]' => lexer -> Keyword(Character({data:lexer.currentInputCharacter})),
 	] );
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-less-than-sign-state
@@ -2146,14 +2146,14 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 	] );
 
@@ -2184,7 +2184,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-dash-dash-state
 	public static var script_data_escaped_dash_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
-			Const(CString('-'));
+			Keyword(Character({data:'-'}));
 		},
 		'<' => lexer -> {
 			lexer.tokenize( script_data_escaped_less_than_sign_state );
@@ -2322,11 +2322,11 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'[A-Z]' => lexer -> {
 			lexer.temporaryBuffer += lexer.currentInputCharacter.toLowerCase();
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 		'[a-z]' => lexer -> {
 			lexer.temporaryBuffer += lexer.currentInputCharacter;
-			Const(CString(lexer.currentInputCharacter));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 		'.' => lexer -> {
 			lexer.reconsume( script_data_escaped_state );
@@ -2345,14 +2345,14 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
-			Const(CString('\uFFFD'));
+			Keyword(Character({data:'\uFFFD'}));
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInScriptHtmlCommentLikeText(lexer.curPos()) ) ) );
 			EOF;
 		},
 		'.' => lexer -> {
-			Const(CString( lexer.currentInputCharacter ));
+			Keyword(Character({data: lexer.currentInputCharacter }));
 		},
 	] );
 
@@ -2384,7 +2384,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-double-escaped-dash-dash-state
 	public static var script_data_double_escaped_dash_dash_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'\\-' => lexer -> {
-			Const(CString('-'));
+			Keyword(Character({data:'-'}));
 		},
 		'<' => lexer -> {
 			lexer.emitString('<');

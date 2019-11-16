@@ -7,6 +7,7 @@
 -lib heed
 #-lib tink_macro
 -lib tink_unittest
+-lib bits
 #-lib no-spoon
 
 -cp src

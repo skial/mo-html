@@ -1,9 +1,12 @@
 package uhx.mo.dom.nodes;
 
+import bits.Bits;
 import uhx.mo.dom.nodes.NodeType;
 import uhx.mo.html.tree.NodePtr;
 
 class BaseNode implements Node {
+
+    public var flags:Bits = new Bits();
 
     public var parentPtr:NodePtr;
     public var firstChildPtr:NodePtr;

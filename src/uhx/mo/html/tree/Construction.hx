@@ -9,6 +9,7 @@ import uhx.mo.html.internal.*;
 import uhx.mo.html.rules.Rules;
 import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.nodes.NodeType;
+import uhx.mo.html.parsing.OpenElements;
 import uhx.mo.html.parsing.InsertionRules;
 import uhx.mo.html.parsing.FormattingElements;
 
@@ -34,13 +35,15 @@ class Construction {
     // @see https://html.spec.whatwg.org/multipage/parsing.html#next-token
     public var nextToken:String;
 
-    // @see https://html.spec.whatwg.org/multipage/parsing.html#the-stack-of-open-elements
-    public var openElements:Array<NodePtr> = [];
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#the-stack-of-open-elements
+    */
+    public var openElements:OpenElements = new OpenElements();
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#current-node
-    public var currentNode(get, never):Node;
+    public var currentNode(get, never):Null<Node>;
 
-    private inline function get_currentNode():Node {
+    private inline function get_currentNode():Null<Node> {
         return tree.vertices[ openElements[openElements.length - 1] ];
     }
 
@@ -48,7 +51,7 @@ class Construction {
     public var adjustedCurrentNode(get, never):Node;
 
     private inline function get_adjustedCurrentNode():Node {
-        // TODO handle fragment parsing, which should return the `context` element.
+        // TODO: handle fragment parsing, which should return the `context` element.
         return currentNode;
     }
 
@@ -264,110 +267,6 @@ class Construction {
 
     /**
         ----
-        `openElement` helper methods
-        ----
-    **/
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-the-specific-scope
-    **/
-    public function hasElementInSpecificScope(target:String, list:Array<String>):Bool {
-        var index = openElements.length -1;
-        var node = openElements[index].get();
-
-        while (true) {
-            if (node.nodeName == target) return true;
-
-            if (list.indexOf(node.nodeName) > -1) return false;
-
-            index--;
-            node = openElements[index].get();
-        }
-
-        return false;
-    }
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
-    **/
-    public inline function hasElementInScope(target:String):Bool {
-        return hasElementInSpecificScope(
-            target, 
-            ['applet', 'caption', 'html', 'table', 'td', 'th', 
-            'marquee', 'object', 'template', /**mathml**/'mi',
-            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
-            'foreignObject', 'desc', 'title']
-        );
-    }
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-list-item-scope
-    **/
-    public inline function hasElementInListItemScope(target:String):Bool {
-        return hasElementInSpecificScope(
-            target, 
-            ['applet', 'caption', 'html', 'table', 'td', 'th', 
-            'marquee', 'object', 'template', /**mathml**/'mi',
-            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
-            'foreignObject', 'desc', 'title', /**extra**/'ol', 'ul']
-        );
-    }
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-button-scope
-    **/
-    public inline function hasElementInButtonScope(target:String):Bool {
-        return hasElementInSpecificScope(
-            target, 
-            ['applet', 'caption', 'html', 'table', 'td', 'th', 
-            'marquee', 'object', 'template', /**mathml**/'mi',
-            'mo', 'mn', 'ms', 'mtext', 'annotation-xml', /**svg**/
-            'foreignObject', 'desc', 'title', /**extra**/'button']
-        );
-    }
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-table-scope
-    **/
-    public inline function hasElementInTableScope(target:String):Bool {
-        return hasElementInSpecificScope(
-            target, 
-            ['html', 'table', 'template']
-        );
-    }
-
-    /**
-        @see https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-select-scope
-    **/
-    public function hasElementInSelectScope(target:String):Bool {
-        return hasElementInSpecificScope(
-            target, 
-            /**
-                TODO: I have no idea if this is a complete list.
-            **/
-            ['a', 'abbr', 'address', 'area', 'article', 'aside', 
-            'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 
-            'br', 'button', 'canvas', 'caption', 'cite', 'code', 
-            'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 
-            'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 
-            'embed', 'fieldset', 'figcaption', 'figure', 'footer', 
-            'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 
-            'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 
-            'input', 'ins', 'kbd', 'label', 'legend', 'li', 'link', 
-            'main', 'map', 'mark', 'math', 'menu', 'menuitem', 'meta', 
-            'meter', 'nav', 'noscript', 'object', 'ol', /*'optgroup', 'option',*/ 
-            'output', 'p', 'param', 'picture', 'pre', 'progress', 
-            'q', 'rb', 'rp', 'rt', 'rtc', 'ruby', 's', 'samp', 
-            'script', 'section', 'select', 'slot', 'small', 
-            'source', 'span', 'strong', 'style', 'sub', 'summary', 
-            'sup', 'svg', 'table', 'tbody', 'td', 'template', 
-            'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 
-            'tr', 'track', 'u', 'ul', 'var', 'video', 'wb']
-        );
-    }
-
-    /**
-        ----
         Closing elements helper methods
         ----
     **/
@@ -415,7 +314,7 @@ class Construction {
     public function closeParagraphElement():Void {
         generateImpliedEndTags(['p']);
         if (currentNode.nodeName != 'p') handleParseError('Parse error.');
-        while (true) {
+        while (openElements.length > 0) {
             var element = openElements.pop().get();
             if (element.nodeName == 'p') break;
         }

@@ -17,7 +17,7 @@ class DocumentFragment extends BaseNode {
     }
 
     private override function get_nodeType():NodeType {
-        return NodeType.DocumentFragement;
+        return NodeType.DocumentFragment;
     }
 
     private override function get_nodeValue():Null<String> {

@@ -2,12 +2,9 @@ package uhx.mo.html.parsing;
 
 import uhx.mo.dom.nodes.*;
 import uhx.mo.html.internal.Tag;
+import uhx.mo.html.tree.NodePtr;
+import uhx.mo.html.flags.FormatType;
 import uhx.mo.html.tree.Construction;
-
-enum FormatType {
-    Formatting(node:Element);
-    Marker(node:Element);
-}
 
 private enum abstract ReconstructPhase(Int) to Int from Int {
     public var Rewind = 0;
@@ -18,23 +15,65 @@ private enum abstract ReconstructPhase(Int) to Int from Int {
 /**
     @see https://html.spec.whatwg.org/multipage/parsing.html#the-list-of-active-formatting-elements
 **/
-abstract FormattingElements(Array<FormatType>) from Array<FormatType> {
+abstract FormattingElements(Array<Element>) {
     
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#list-of-active-formatting-elements
     **/
-    public inline function new() this = [];
+    public inline function new() {
+        this = [];
+    }
+
+    public function has(node:NodePtr):Bool {
+        for (n in this) {
+            if (n.id == node) return true;
+
+        }
+
+        return false;
+    }
+
+    public function get(nodeName:String):Null<Element> {
+        var start = 0;
+        var end = this.length -1;
+
+        for (index in 0...this.length) if (this[end-index].flags.isSet(FormatType.Marker)) {
+            start = index;
+            break;
+        }
+
+        for (index in start...end) {
+            if (this[index].nodeName == nodeName) return this[index];
+        }
+
+        return null;
+    }
+
+    public inline function exists(nodeName:String):Bool {
+        return get(nodeName) != null;
+    }
+
+    public function remove(node:NodePtr):Void {
+        for (index in 0...this.length) {
+            if (this[index].id == node) {
+                this.splice(index, 1);
+                break;
+
+            }
+
+        }
+    }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#push-onto-the-list-of-active-formatting-elements
     **/
-    public function push(v:FormatType) {
+    public function push(v:Element) {
         if (this.length > 2) {
             // This is the Noah's Ark clause. But with three per family instead of two.
 
             var lastMarker = -1;
             var length = (this.length-1);
-            for (index in 0...this.length) if (this[length-index].match(Marker(_))) {
+            for (index in 0...this.length) if (this[length-index].flags.isSet(FormatType.Marker)) {
                 lastMarker = index;
                 break;
             }
@@ -52,46 +91,41 @@ abstract FormattingElements(Array<FormatType>) from Array<FormatType> {
             }
 
             for (index in start...end) {
-                switch [this[index], v] {
-                    case [Formatting(n1) | Marker(n1), Formatting(n2) | Marker(n2)]:
-                        var check = 
-                            n1.nodeName == n2.nodeName && 
-                            n1.nodeType == n2.nodeType &&
-                            n1.attributes.length == n2.attributes.length &&
-                            n1.namespaceURI == n2.namespaceURI;
+                var n1 = this[index];
+                var n2 = v;
+                var check = 
+                    n1.nodeName == n2.nodeName && 
+                    n1.nodeType == n2.nodeType &&
+                    n1.attributes.length == n2.attributes.length &&
+                    n1.namespaceURI == n2.namespaceURI;
 
 
-                        if (!check) continue;
-                        
-                        /**
-                            For these purposes, the attributes must be compared as they were 
-                            when the elements were created by the parser; two elements have 
-                            the same attributes if all their parsed attributes can be paired 
-                            such that the two attributes in each pair have identical names, 
-                            namespaces, and values (the order of the attributes does not matter).
-                        **/
-                        var exists = false;
-                        for (attrA in n1.attributes) {
-                            exists = false;
-                            for (attrB in n2.attributes) if (attrA.name == attrB.name && attrA.value == attrB.value) {
-                                exists = true;
-                                break;
-                            }
-
-                            if (!exists) break;
-                        }
-
-                        if (exists) {
-                            this.splice(index, index+1);
-
-                        }
-                        
+                if (!check) continue;
+                
+                /**
+                    For these purposes, the attributes must be compared as they were 
+                    when the elements were created by the parser; two elements have 
+                    the same attributes if all their parsed attributes can be paired 
+                    such that the two attributes in each pair have identical names, 
+                    namespaces, and values (the order of the attributes does not matter).
+                **/
+                var exists = false;
+                for (attrA in n1.attributes) {
+                    exists = false;
+                    for (attrB in n2.attributes) if (attrA.name == attrB.name && attrA.value == attrB.value) {
+                        exists = true;
                         break;
+                    }
 
-                    case _:
-                        break;
+                    if (!exists) break;
+                }
+
+                if (exists) {
+                    this.splice(index, index+1);
 
                 }
+                
+                break;
 
             }
 
@@ -108,10 +142,11 @@ abstract FormattingElements(Array<FormatType>) from Array<FormatType> {
         
         var entry = this.length - 1;
         
-        switch this[entry] {
-            case Marker(_): return;
-            case Formatting(e) if (Construction.current.openElements.indexOf(e.id) > -1): return;
-            case _:
+        if (this[entry].flags.isSet(FormatType.Marker)) {
+            return;
+        } else {
+            if (Construction.current.openElements.indexOf(this[entry].id) > -1) return;
+            
         }
         
         var state:ReconstructPhase = Rewind;
@@ -123,40 +158,26 @@ abstract FormattingElements(Array<FormatType>) from Array<FormatType> {
 
                     } else {
                         entry = entry-1;
-                        switch this[entry] {
-                            case Marker(_):
-                                state = Rewind;
-
-                            case Formatting(e) if (Construction.current.openElements.indexOf(e.id) > -1):
-                                state = Rewind;
-
-                            case _:
+                        if (this[entry].flags.isSet(FormatType.Marker) || Construction.current.openElements.indexOf(this[entry].id) > -1) {
+                            state = Rewind;
 
                         }
+
                     }
 
                 case Advance:
                     entry++;
 
                 case Create:
-                    switch this[entry] {
-                        case Marker(e):
-                            this[entry] = Marker( 
-                                Construction.current.insertHtmlElement({
-                                    name:e.nodeName, 
-                                    attributes:[for (a in e.attributes.self()) { name:a.name, value:a.value }], 
-                                    selfClosing:false
-                                }) );
+                    var element = Construction.current.insertHtmlElement({
+                        name:this[entry].nodeName, 
+                        attributes:[for (a in this[entry].attributes.self()) { name:a.name, value:a.value }], 
+                        selfClosing:false
+                    });
 
-                        case Formatting(e):
-                            this[entry] = Formatting( 
-                                Construction.current.insertHtmlElement({
-                                    name:e.nodeName, 
-                                    attributes:[for (a in e.attributes.self()) { name:a.name, value:a.value }], 
-                                    selfClosing:false
-                                }) );
-                    }
-
+                    if (this[entry].flags.isSet(FormatType.Marker)) element.flags.set(FormatType.Marker);
+                    this[entry] = element;
+                    
                     if (entry != this.length-1) state = Advance;
 
             }
@@ -167,11 +188,8 @@ abstract FormattingElements(Array<FormatType>) from Array<FormatType> {
         @see https://html.spec.whatwg.org/multipage/parsing.html#clear-the-list-of-active-formatting-elements-up-to-the-last-marker
     **/
     public function clear():Void {
-        while (true) {
-            switch this.pop() {
-                case Marker(_) | null: break;
-                case _:
-            }
+        while (this.length > 0) {
+            if (this.pop().flags.isSet(FormatType.Marker)) break;
 
         }
     }
