@@ -1888,66 +1888,458 @@ class InsertionRules {
     }
 
     /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#close-the-cell
+    **/
+    private function closeTheCell(maker:Construction) {
+        maker.generateImpliedEndTags([]);
+        if (maker.currentNode.nodeName != 'td' || maker.currentNode.nodeName != 'th') {
+            maker.handleParseError('Parse error.');
+
+        }
+
+        while (maker.openElements.length > 0) {
+            var node = maker.openElements.pop().get();
+            if (node.nodeName == 'td' || node.nodeName == 'th') break;
+        }
+
+        maker.activeFormattingElements.clear();
+        insertionMode = InRow;
+        
+    }
+
+    /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intd
     **/
     public function inCell(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(EndTag(tag)) if (tag.name == 'td' || tag.name == 'th'):
+                if (!maker.openElements.hasElementInTableScope(tag.name)) {
+                    maker.handleParseError('Parse error. Ignore the token.');
 
+                } else {
+                    maker.generateImpliedEndTags([]);
+                    if (maker.currentNode.nodeName != tag.name) {
+                        maker.handleParseError('Parse error.');
+
+                    }
+                    maker.openElements.popUntilNamed(tag.name);
+                    maker.activeFormattingElements.clear();
+                    insertionMode = InRow;
+
+                }
+
+            case Keyword(StartTag(tag)) if (["caption", "col", "colgroup", "tbody", "td", "tfoot", "th", "thead", "tr"].indexOf(tag.name) > -1):
+                if (!maker.openElements.hasElementInTableScope('td') || !maker.openElements.hasElementInTableScope('th')) {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                } else {
+                    closeTheCell(maker);
+                    process(token, maker);
+
+                }
+
+            case Keyword(EndTag(tag)) if (["body", "caption", "col", "colgroup", "html"].indexOf(tag.name) > -1):
+                maker.handleParseError('Parse error. Ignore the token.');
+
+            case Keyword(EndTag(tag)) if (["table", "tbody", "tfoot", "thead", "tr"].indexOf(tag.name) > -1):
+                if (!maker.openElements.hasElementInTableScope(tag.name)) {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                } else {
+                    closeTheCell(maker);
+                    process(token, maker);
+
+                }
+
+            case _:
+                inBody(token, maker);
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inselect
     **/
     public function inSelect(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Character({data:'\u0000'})):
+                maker.handleParseError('Parse error. Ignore the token.');
 
+            case Keyword(Character({data:char})):
+                maker.insertCharacter(char);
+
+            case Keyword(Comment({data:value})):
+                maker.insertComment(value);
+
+            case Keyword(DOCTYPE(_)):
+                maker.handleParseError('Parse error. Ignore the token.');
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'option'):
+                if (maker.currentNode.nodeName == tag.name) {
+                    maker.openElements.pop();
+
+                }
+
+                maker.insertHtmlElement(tag);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'optgroup'):
+                if (maker.currentNode.nodeName == 'option') {
+                    maker.openElements.pop();
+
+                }
+
+                if (maker.currentNode.nodeName == tag.name) {
+                    maker.openElements.pop();
+
+                }
+
+                maker.insertHtmlElement(tag);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'optgroup'):
+                if (maker.currentNode.nodeName == 'option' && maker.openElements[maker.openElements.length - 2].get().nodeName == 'optgroup') {
+                    maker.openElements.pop();
+
+                }
+
+                if (maker.currentNode.nodeName == 'optgroup') {
+                    maker.openElements.pop();
+
+                } else {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                }
+
+            case Keyword(EndTag(tag)) if (tag.name == 'option'):
+                if (maker.currentNode.nodeName == tag.name) {
+                    maker.openElements.pop();
+
+                } else {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                }
+
+            case Keyword(EndTag(tag)) if (tag.name == 'select'):
+                if (!maker.openElements.hasElementInSelectScope(tag.name)) {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                } else {
+                    maker.openElements.popUntilNamed('select');
+                    resetInsertionMode(maker);
+
+                }
+
+            case Keyword(StartTag(tag)) if (tag.name == 'select'):
+                maker.handleParseError('Parse error.');
+                if (!maker.openElements.hasElementInSelectScope('select')) {
+                    // Ignore the token.
+
+                } else {
+                    maker.openElements.popUntilNamed('select');
+                    resetInsertionMode(maker);
+
+                }
+
+            case Keyword(StartTag(tag)) if (["input", "keygen", "textarea"].indexOf(tag.name) > -1):
+                maker.handleParseError('Parse error.');
+
+                if (!maker.openElements.hasElementInSelectScope('select')) {
+                    // Ignore the token.
+
+                } else {
+                    maker.openElements.popUntilNamed('select');
+                    resetInsertionMode(maker);
+                    process(token, maker);
+
+                }
+
+            case Keyword(StartTag(tag)) if (tag.name == 'script' || tag.name == 'template'):
+                inHead(token, maker);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'template'):
+                inHead(token, maker);
+
+            case EOF:
+                inBody(token, maker);
+
+            case _:
+                maker.handleParseError('Parse error. Ignore the token.');
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inselectintable
     **/
     public function inSelectInTable(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(StartTag(tag)) if (["caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"].indexOf(tag.name) > -1):
+                maker.handleParseError('Parse error.');
+                maker.openElements.popUntilNamed('select');
+                resetInsertionMode(maker);
+                process(token, maker);
 
+            case Keyword(EndTag(tag)) if (["caption", "table", "tbody", "tfoot", "thead", "tr", "td", "th"].indexOf(tag.name) > -1):
+                maker.handleParseError('Parse error.');
+                if (!maker.openElements.hasElementInTableScope(tag.name)) {
+                    // Ignore the token.
+
+                } else {
+                    maker.openElements.popUntilNamed('select');
+                    resetInsertionMode(maker);
+                    process(token, maker);
+
+                }
+
+            case _:
+                inSelect(token, maker);
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-intemplate
     **/
     public function inTemplate(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Character(_) | Comment(_) | DOCTYPE(_)):
+                inBody(token, maker);
 
+            case Keyword(StartTag(tag)) if (["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style", "template", "title"].indexOf(tag.name) > -1):
+                inHead(token, maker);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'template'):
+                inHead(token, maker);
+
+            case Keyword(StartTag(tag)) if (["caption", "colgroup", "tbody", "tfoot", "thead"].indexOf(tag.name) > -1):
+                stackOfTemplateInsertionModes.pop();
+                stackOfTemplateInsertionModes.push(InTable);
+                insertionMode = InTable;
+                process(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'col'):
+                stackOfTemplateInsertionModes.pop();
+                stackOfTemplateInsertionModes.push(InColumnGroup);
+                insertionMode = InColumnGroup;
+                process(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'tr'):
+                stackOfTemplateInsertionModes.pop();
+                stackOfTemplateInsertionModes.push(InTableBody);
+                insertionMode = InTableBody;
+                process(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'td' || tag.name == 'th'):
+                stackOfTemplateInsertionModes.pop();
+                stackOfTemplateInsertionModes.push(InRow);
+                insertionMode = InRow;
+                process(token, maker);
+
+            case Keyword(StartTag(tag)):
+                stackOfTemplateInsertionModes.pop();
+                stackOfTemplateInsertionModes.push(InBody);
+                insertionMode = InBody;
+                process(token, maker);
+
+            case Keyword(EndTag(_)):
+                maker.handleParseError('Parse error. Ignore the token.');
+
+            case EOF:
+                if (!maker.openElements.exists('template')) {
+                    return;
+
+                } else {
+                    maker.openElements.popUntilNamed('template');
+                    maker.activeFormattingElements.clear();
+                    stackOfTemplateInsertionModes.pop();
+                    resetInsertionMode(maker);
+                    process(token, maker);
+
+                }
+            
+            case _:
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-afterbody
     **/
     public function afterBody(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
+                inBody(token, maker);
 
+            case Keyword(Comment({data:value})):
+                //maker.insertComment(value);
+                var comment = new Comment(value);
+                comment.id = maker.tree.addVertex( comment );
+                maker.openElements[0].get().childrenPtr.push(comment.id);
+
+            case Keyword(DOCTYPE(_)):
+                maker.handleParseError('Parse error.');
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'html'):
+                // TODO: check if parser created in fragment parsing algo.
+                insertionMode = AfterAfterBody;
+
+            case EOF:
+                // TODO: Stop everything!
+
+            case _:
+                maker.handleParseError('Parse error.');
+                insertionMode = InBody;
+                process(token, maker);
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inframeset
     **/
     public function inFrameset(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
+                maker.insertCharacter(char);
 
+            case Keyword(Comment({data:value})):
+                maker.insertComment(value);
+
+            case Keyword(DOCTYPE(_)):
+                maker.handleParseError('Parse error. Ignore the token.');
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'frameset'):
+                maker.insertHtmlElement(tag);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'frameset'):
+                if (maker.currentNode.id == maker.openElements[0]) {
+                    maker.handleParseError('Parse error. Ignore the token.');
+
+                } else {
+                    maker.openElements.pop();
+                    // TODO: check if parser was created as part of fragment parsing algo.
+
+
+                }
+
+            case Keyword(StartTag(tag)) if (tag.name == 'frame'):
+                maker.insertHtmlElement(tag);
+                maker.openElements.pop();
+                // TODO: acknowledge the tokens self closing flag.
+
+            case Keyword(StartTag(tag)) if (tag.name == 'noframes'):
+                inHead(token, maker);
+
+            case EOF:
+                if (maker.currentNode.id == maker.openElements[0]) {
+                    maker.handleParseError('Parse error.');
+
+                }
+
+            case _:
+                maker.handleParseError('Parse error. Ignore the token.');
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-afterframeset
     **/
     public function afterFrameset(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
+                maker.insertCharacter(char);
 
+            case Keyword(Comment({data:value})):
+                maker.insertComment(value);
+            
+            case Keyword(DOCTYPE(_)):
+                maker.handleParseError('Parse error. Ignore the token.');
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case Keyword(EndTag(tag)) if (tag.name == 'html'):
+                insertionMode = AfterAfterFrameset;
+
+            case Keyword(StartTag(tag)) if (tag.name == 'noframes'):
+                inHead(token, maker);
+
+            case EOF:
+                // TODO: stop everything!
+
+            case _:
+                maker.handleParseError('Parse error. Ignore the token.');
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#the-after-after-body-insertion-mode
     **/
     public function afterAfterBody(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Comment({data:value})):
+                var comment = new Comment(value);
+                comment.id = maker.tree.addVertex( comment );
+                maker.document.childrenPtr.push( comment.id );
 
+            case Keyword(DOCTYPE(_)):
+                inBody(token, maker);
+
+            case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
+                inBody(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case EOF:
+                // TODO: stop everything!
+
+            case _:
+                maker.handleParseError('Parse error.');
+                insertionMode = InBody;
+                process(token, maker);
+
+        }
     }
 
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#the-after-after-frameset-insertion-mode
     **/
     public function afterAfterFrameset(token:Token<HtmlTokens>, maker:Construction):Void {
+        switch token {
+            case Keyword(Comment({data:value})):
+                var comment = new Comment(value);
+                comment.id = maker.tree.addVertex( comment );
+                maker.document.childrenPtr.push( comment.id );
 
+            case Keyword(DOCTYPE(_)):
+                inBody(token, maker);
+
+            case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
+                inBody(token, maker);
+
+            case Keyword(StartTag(tag)) if (tag.name == 'html'):
+                inBody(token, maker);
+
+            case EOF:
+                // TODO: stop everything!
+
+            case Keyword(StartTag(tag)) if (tag.name == 'noframes'):
+                inHead(token, maker);
+
+            case _:
+                maker.handleParseError('Parse error. Ignore the token.');
+        }
     }
 
 }
