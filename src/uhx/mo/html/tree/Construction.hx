@@ -38,7 +38,7 @@ class Construction {
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#the-stack-of-open-elements
     */
-    public var openElements:OpenElements = new OpenElements();
+    public var openElements:OpenElements;
 
     // @see https://html.spec.whatwg.org/multipage/parsing.html#current-node
     public var currentNode(get, never):Null<Node>;
@@ -73,13 +73,70 @@ class Construction {
     public var fosterParenting:Bool = false;
 
     public var tokenizer:Tokenizer;
+    public var tokenizerStartState = Rules.data_state;
 
-    public function new(bytes:byte.ByteData) {
+    public function new(bytes:byte.ByteData, ?context:Element) {
+        openElements = new OpenElements();
         tree = new Tree();
         document = new Document(tree);
-        tree.addVertex( document );
-        insertionRules = new InsertionRules();
-        tokenizer = new Tokenizer(bytes, 'html-parser::${document.id}::');
+        if (context == null) {
+            tree.addVertex( document );
+            insertionRules = new InsertionRules();
+            tokenizer = new Tokenizer(bytes, 'html-parser::${document.id}::');
+
+        } else {
+            /**
+                HTML fragment parsing algorithm.
+                ---
+                @see https://html.spec.whatwg.org/multipage/parsing.html#html-fragment-parsing-algorithm
+            **/
+            switch context.ownerDocument.mode {
+                case 'quirks':
+                    document.mode = 'quirks';
+
+                case 'limited-quirks':
+                    document.mode = 'limited-quirks';
+
+                case _:
+
+            }
+
+            switch context.nodeName {
+                case 'title' | 'textarea':
+                    tokenizerStartState = Rules.rcdata_state;
+
+                case 'style' | 'xmp' | 'iframe' | 'noembed' | 'noframes':
+                    tokenizerStartState = Rules.rawtext_state;
+
+                case 'script':
+                    tokenizerStartState = Rules.script_data_state;
+
+                case 'noscript':
+                    // TODO:
+                    //tokenizerStartState = 
+
+                case 'plaintext':
+                    tokenizerStartState = Rules.plaintext_state;
+
+                case _:
+
+            }
+            var root = insertHtmlElement({name:'html', attributes:[], selfClosing:false});
+            /**7**/ // This step should have been taken care of in `insertHtmlElement`.
+            if (context.nodeName == 'template') insertionRules.stackOfTemplateInsertionModes.push(InTemplate);
+            var token = Keyword(HtmlTokens.StartTag({
+                name:context.nodeName, 
+                attributes:[for (attr in context.attributes) {name:attr.name, value:attr.value}], 
+                selfClosing:false
+            }));
+            insertionRules.resetInsertionMode(this); //TODO: check this works
+            // TODO: step 11
+            /**12**/
+            tokenizer = new Tokenizer(bytes, 'html-fragment-parser::${document.id}::');
+            // Ignore: step 13. User has to call `parse`.
+            // Ignore: step 14. User needs to do this.
+            
+        }
     }
 
     public function parse():Void {

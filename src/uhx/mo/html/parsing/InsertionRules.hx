@@ -36,7 +36,7 @@ class InsertionRules {
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#reset-the-insertion-mode-appropriately
     **/
-    private function resetInsertionMode(maker:Construction) {
+    public function resetInsertionMode(maker:Construction) {
         var last = false;
         var index = maker.openElements.length -1;
         var node = maker.openElements[index].get();
