@@ -93,7 +93,7 @@ class Construction {
             insert characters into the stream being tokenized.)
             **/
             var token = tokenizer.tokenize( Rules.data_state );
-            trace( token );
+            //trace( token );
             switch token {
                 case Keyword(ParseError(error)): handleParseError(error);
                 case EOF: break;

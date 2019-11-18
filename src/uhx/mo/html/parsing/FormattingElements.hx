@@ -17,6 +17,8 @@ private enum abstract ReconstructPhase(Int) to Int from Int {
 **/
 @:forward(indexOf, lastIndexOf, remove)
 abstract FormattingElements(Array<NodePtr>) {
+
+    public inline function self():Array<NodePtr> return this;
     
     /**
         @see https://html.spec.whatwg.org/multipage/parsing.html#list-of-active-formatting-elements

@@ -32,7 +32,7 @@ class NewHtmlSpec {
 
 	public function testFoo() {
 		var tokens = parse(paragraphs);
-		for (t in tokens) trace( t );
+		for (t in tokens) trace( t.get().nodeName );
 		trace(paragraphs);
 		//return asserts.done();
 	}
