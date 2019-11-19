@@ -39,7 +39,7 @@ class BaseNode implements Node {
     @:isVar public var ownerDocument(get, set):Null<Document>;
 
     private inline function get_parent():Null<Node> {
-        return parentPtr.get();
+        return parentPtr != null ? parentPtr.get() : null;
     }
 
     private inline function set_parent(v:Null<Node>):Null<Node> {
@@ -58,29 +58,48 @@ class BaseNode implements Node {
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-childnodes
-    private inline function get_childNodes() {
-        // TODO
-        return [];
+    private inline function get_childNodes():NodeList {
+        return childrenPtr;
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-firstchild
     private inline function get_firstChild() {
-        return null;
+        return childrenPtr.length > 0 ? childrenPtr[0].get() : null;
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-lastchild
     private inline function get_lastChild() {
-        return null;
+        return childrenPtr.length > 0 ? childrenPtr[childrenPtr.length-1].get() : null;
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-previoussibling
     private inline function get_previousSibling() {
-        return null;
+        return if (parentPtr != null) {
+            var parent = parentPtr.get();
+            var index = parent.childrenPtr.indexOf(id);
+            index-1 > 0 
+                ? parent.childrenPtr[index-1].get()
+                : null;
+
+        } else {
+            null;
+
+        }
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-nextsibling
     private inline function get_nextSibling() {
-        return null;
+        return if (parentPtr != null) {
+            var parent = parentPtr.get();
+            var index = parent.childrenPtr.indexOf(id);
+            index != -1 && index+1 < parent.childrenPtr.length 
+                ? parent.childrenPtr[index+1].get()
+                : null;
+
+        } else {
+            null;
+
+        }
     }
 
     // @see https://dom.spec.whatwg.org/#concept-node-length
@@ -151,7 +170,7 @@ class BaseNode implements Node {
 
     // @see https://dom.spec.whatwg.org/#dom-node-haschildnodes
     public function hasChildNodes():Bool {
-        return length > 0;
+        return childrenPtr.length > 0;
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-normalize
@@ -216,7 +235,7 @@ class BaseNode implements Node {
 
     // @see https://dom.spec.whatwg.org/#dom-node-appendchild
     public function appendChild(node:Node):Node {
-        return this;
+        return node.append(this);
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-replacechild
@@ -225,8 +244,8 @@ class BaseNode implements Node {
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-removechild
-    public function removeChild(child:Node):Node {
-        return this;
+    public inline function removeChild(child:Node):Node {
+        return child.preRemove(this);
     }
 
     public function compare(other:Node):Bool {

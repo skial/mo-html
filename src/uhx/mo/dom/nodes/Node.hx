@@ -421,4 +421,40 @@ class NodeUtil {
         
     }
 
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-pre-remove
+    **/
+    public static function preRemove(child:Node, parent:Node):Node {
+        if (child.parentPtr != null && child.parentPtr != parent.id) {
+            throw 'NotFoundError';
+
+        }
+        remove(child, parent);
+        return child;
+    }
+
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-remove
+    **/
+    public static function remove(node:Node, parent:Node) {
+        //var index = node.index();
+        // TODO: steps 2-5
+        // TODO: step 6
+        var oldPreviousSibling = node.previousSiblingPtr;
+        var oldNextSibling = node.nextSiblingPtr;
+        parent.childrenPtr.remove(node.id);
+        // TODO: step 10
+        // TODO: step 11
+        // TODO: step 12
+        // TODO: step 13 // I don't know what removing steps is...
+        // TODO: step 14-18
+    }
+
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-append
+    **/
+    public static inline function append(node:Node, parent:Node):Node {
+        return preInsertNode(node, parent, null);
+    }
+
 }

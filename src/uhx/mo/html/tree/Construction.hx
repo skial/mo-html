@@ -102,28 +102,28 @@ class Construction {
             }
 
             switch context.nodeName {
-                case 'title' | 'textarea':
+                case 'TITLE' | 'TEXTAREA':
                     tokenizerStartState = Rules.rcdata_state;
 
-                case 'style' | 'xmp' | 'iframe' | 'noembed' | 'noframes':
+                case 'STYLE' | 'XMP' | 'IFRAME' | 'NOEMBED' | 'NOFRAMES':
                     tokenizerStartState = Rules.rawtext_state;
 
-                case 'script':
+                case 'SCRIPT':
                     tokenizerStartState = Rules.script_data_state;
 
-                case 'noscript':
+                case 'NOSCRIPT':
                     // TODO:
                     //tokenizerStartState = 
 
-                case 'plaintext':
+                case 'PLAINTEXT':
                     tokenizerStartState = Rules.plaintext_state;
 
                 case _:
 
             }
             var root = insertHtmlElement({name:'html', attributes:[], selfClosing:false});
-            /**7**/ // This step should have been taken care of in `insertHtmlElement`.
-            if (context.nodeName == 'template') insertionRules.stackOfTemplateInsertionModes.push(InTemplate);
+            /**7**/ // TODO: This step should have been taken care of in `insertHtmlElement`.
+            if (context.nodeName == 'TEMPLATE') insertionRules.stackOfTemplateInsertionModes.push(InTemplate);
             var token = Keyword(HtmlTokens.StartTag({
                 name:context.nodeName, 
                 attributes:[for (attr in context.attributes) {name:attr.name, value:attr.value}], 
@@ -171,6 +171,37 @@ class Construction {
 
         }
 
+        stopParsing();
+
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#the-end
+    **/
+    public function stopParsing() {
+        // TODO: set current document readiness to `interactive`
+        insertionRules.insertionMode = null;
+        while (openElements.length > 0) openElements.pop();
+        // TODO: step 3
+        // TODO: step 4
+        // TODO: step 5
+        // TODO: step 6
+        // TODO: step 7
+        // TODO: step 8
+        // TODO: step 9
+        // TODO: step 10
+        // TODO: step 11
+        // TODO: step 12
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#abort-a-parser
+    **/
+    public function abortParsing() {
+        @:privateAccess tokenizer.pos = tokenizer.input.length;
+        // TODO: step 2
+        while (openElements.length > 0) openElements.pop();
+        // TODO: step 4
     }
 
     public function handleParseError(error:String, ?pos:haxe.PosInfos):Void {
@@ -204,7 +235,7 @@ class Construction {
             insertionRules.process(token, this);
 
         } else {
-            // foreignContent(token);
+            insertionRules.foreignContent(token, this);
 
         }
         
@@ -235,13 +266,13 @@ class Construction {
     **/
     public function appropriateInsertionPoint(?overrideTarget:Node):InsertionLocation {
         var target = overrideTarget == null ? currentNode : overrideTarget;
-        var targetIs = ['table', 'tbody', 'tfoot', 'thead', 'tr'];
+        var targetIs = ['TABLE', 'TBODY', 'TFOOT', 'THEAD', 'TR'];
         var pos = if (fosterParenting && targetIs.indexOf( target.nodeName ) > -1) {
             // TODO: implement steps.
             throw 'Not Implemented';
 
         } else {
-            target.length > 1 ? target.length - 1 : 0;
+            target.childrenPtr.length > 1 ? (target.childrenPtr.length - 1) : 0;
 
         }
 
@@ -273,16 +304,22 @@ class Construction {
     **/
     public function insertCharacter(data:String):Void {
         var adjustedInsertionLocation = appropriateInsertionPoint();
-        if (currentNode.nodeType == NodeType.Document) return;
+        if (adjustedInsertionLocation.node.get().nodeType == NodeType.Document) return;
         var pos = adjustedInsertionLocation.pos;
-        var node = adjustedInsertionLocation.node.get();
-        var parent = node.parent;
-        var prev = parent.childNodes[pos-1];
+        var parent = adjustedInsertionLocation.node.get();
+        var prev = if (pos-1 > 0 && parent.hasChildNodes()) {
+            parent.childrenPtr[pos-1].get();
+        } else {
+            null;
+        }
+        
         if (pos > 0 && prev != null && prev.nodeType == NodeType.Text) {
             prev.nodeValue += data;
 
         } else {
-            var text = new Text(data, node.ownerDocument);
+            var text = new Text(data, parent.ownerDocument);
+            text.id = tree.addVertex( text );
+            text.parentPtr = adjustedInsertionLocation.node;
             adjustedInsertionLocation.insert( text );
 
         }
@@ -298,6 +335,7 @@ class Construction {
             : appropriateInsertionPoint();
 
         comment.id = tree.addVertex( comment );
+        comment.parentPtr = adjustedInsertionLocation.node;
         adjustedInsertionLocation.insert( comment );
     }
 
@@ -310,6 +348,7 @@ class Construction {
 
         // TODO: fully implement step 3.
         adjustedInsertionLocation.insert(element.id);
+        element.parentPtr = adjustedInsertionLocation.node;
 
         openElements.push( element.id );
         return element;
@@ -334,7 +373,7 @@ class Construction {
     public function generateImpliedEndTags(exclude:Array<String>):Void {
         while (currentNode != null) {
             switch currentNode.nodeName {
-                case 'dd' | 'dt' | 'li' | 'optgroup' | 'option' | 'p' | 'rb' | 'rp' | 'rt' | 'rtc':
+                case 'DD' | 'DT' | 'LI' | 'OPTGROUP' | 'OPTION' | 'P' | 'RB' | 'RP' | 'RT' | 'RTC':
                     if (exclude.length > 0 && exclude.indexOf(currentNode.nodeName) == -1) {
                         openElements.pop();
                     }
@@ -354,7 +393,7 @@ class Construction {
     public function generateImpliedEndTagsThoroughly():Void {
         while (currentNode != null) {
             switch currentNode.nodeName {
-                case 'caption' | 'colgroup' | 'dd' | 'dt' | 'li' | 'optgroup' | 'option' | 'p' | 'rb' | 'rp' | 'rt' | 'rtc' | 'tbody' | 'td' | 'tfoot' | 'th' | 'thead' | 'tr':
+                case 'CAPTION' | 'COLGROUP' | 'DD' | 'DT' | 'LI' | 'OPTGROUP' | 'OPTION' | 'P' | 'RB' | 'RP' | 'RT' | 'RTC' | 'TBODY' | 'TD' | 'TFOOT' | 'TH' | 'THEAD' | 'TR':
                     openElements.pop();
 
                 case _:
@@ -369,11 +408,11 @@ class Construction {
         @see https://html.spec.whatwg.org/multipage/parsing.html#close-a-p-element
     **/
     public function closeParagraphElement():Void {
-        generateImpliedEndTags(['p']);
-        if (currentNode.nodeName != 'p') handleParseError('Parse error.');
+        generateImpliedEndTags(['P']);
+        if (currentNode.nodeName != 'P') handleParseError('Parse error.');
         while (openElements.length > 0) {
             var element = openElements.pop().get();
-            if (element.nodeName == 'p') break;
+            if (element.nodeName == 'P') break;
         }
     }
 

@@ -1084,6 +1084,7 @@ class Rules implements uhx.mo.RulesCache {
 		}
 	] );
 
+	// @see https://html.spec.whatwg.org/multipage/parsing.html#before-attribute-name-state
 	public static var before_attribute_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'[/>]' => lexer -> lexer.reconsume( after_attribute_name_state ),

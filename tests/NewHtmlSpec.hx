@@ -1,5 +1,6 @@
 package ;
 
+import uhx.mo.html.tree.NodePtr;
 import haxe.CallStack;
 import haxe.io.Eof;
 import uhx.mo.Token;
@@ -25,14 +26,24 @@ class NewHtmlSpec {
 	}
 	
 	private function parse(html:String) {
-		var tree = uhx.mo.html.tree.Construction.make( ByteData.ofString( html ) );
-		tree.parse();
-		return tree.openElements;
+		var maker = uhx.mo.html.tree.Construction.make( ByteData.ofString( html ) );
+		maker.parse();
+		return maker;
+	}
+
+	private function loop(nodePtr:NodePtr) {
+		var node = nodePtr.get();
+		trace( nodePtr, node.nodeName );
+		for (ptr in node.childrenPtr) {
+			loop(ptr);
+		}
 	}
 
 	public function testFoo() {
-		var tokens = parse(paragraphs);
-		for (t in tokens) trace( t.get().nodeName );
+		var maker = parse(paragraphs);
+		trace( maker.tree.vertices );
+		var document = maker.document;
+		for (ptr in document.childrenPtr) loop(ptr);
 		trace(paragraphs);
 		//return asserts.done();
 	}
