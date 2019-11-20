@@ -1,6 +1,7 @@
 package uhx.mo.dom.nodes;
 
 import bits.Bits;
+import uhx.mo.dom.nodes.NodeType;
 import uhx.mo.html.tree.NodePtr;
 import be.ds.interfaces.IIdentity;
 import be.ds.interfaces.IComparable;
@@ -477,6 +478,164 @@ class NodeUtil {
         // TODO: step 8-11
         // TODO: step 13
         node.data = nodeData;
+    }
+
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-replace
+    **/
+    public static function replace(child:Node, node:Node, parent:Node) {
+        if (parent.nodeType != NodeType.Document || parent.nodeType != NodeType.DocumentFragment || parent.nodeType != NodeType.Element) {
+            throw 'HierarchyRequestError';
+        }
+
+        if (node.hostIncludingInclusiveAncestor(parent)) {
+            throw 'HierarchyRequestError';
+
+        }
+
+        if (child.parentPtr != parent.id) {
+            throw 'NotFoundError';
+
+        }
+
+        if ([NodeType.DocumentFragment, NodeType.DocumentType, NodeType.Element, NodeType.Text, NodeType.ProcessingInstruction, NodeType.Comment].indexOf(node.nodeType) == -1) {
+            throw 'HierarchyRequestError';
+
+        }
+
+        if (node.nodeType == NodeType.Text || parent.nodeType == NodeType.Document || (node.nodeType == NodeType.DocumentType && parent.nodeType != NodeType.Document)) {
+            throw 'HierarchyRequestError';
+        }
+
+        if (parent.nodeType == NodeType.Document) {
+            switch node.nodeType {
+                case NodeType.DocumentFragment:
+                    var childTexts = 0;
+                    var childElements = 0;
+                    for (childPtr in node.childrenPtr) {
+                        var child = childPtr.get();
+                        if (child.nodeType == NodeType.Element) {
+                            childElements++;
+                            if (childElements > 1) break;
+                            continue;
+                        }
+                        if (child.nodeType == NodeType.Text) {
+                            childTexts++;
+                            break;
+                        }
+
+                    }
+
+                    if (childElements > 1 || childTexts != 0) {
+                        throw 'HierarchyRequestError';
+                    }
+
+                    var doctypeSibling = false;
+                    var parentElements = 0;
+                    for (index in 0...parent.childrenPtr.length) {
+                        if (parent.childrenPtr[index] != child.id) {
+                            parentElements++;
+                            break;
+                        } else if (index+1 <= parent.childrenPtr.length-1) {
+                            doctypeSibling = parent.childrenPtr[index+1].get().nodeType == NodeType.DocumentType;
+                            break;
+
+                        }
+
+                    }
+                    
+                    if (childElements == 1 && (parentElements != 0 || !doctypeSibling)) {
+                        throw 'HierarchyRequestError';
+
+                    }
+
+                case NodeType.Element:
+                    var doctypeSibling = false;
+                    var parentElements = 0;
+                    for (index in 0...parent.childrenPtr.length) {
+                        if (parent.childrenPtr[index] != child.id) {
+                            parentElements++;
+                            break;
+                        } else if (index+1 <= parent.childrenPtr.length-1) {
+                            doctypeSibling = parent.childrenPtr[index+1].get().nodeType == NodeType.DocumentType;
+                            break;
+
+                        }
+
+                    }
+
+                    if (parentElements != 0 || !doctypeSibling) {
+                        throw 'HierarchyRequestError';
+
+                    }
+
+                case NodeType.DocumentType:
+                    var elementSibling = false;
+                    var doctypeElements = 0;
+                    for (index in 0...parent.childrenPtr.length) {
+                        if (parent.childrenPtr[index] != child.id) {
+                            doctypeElements++;
+                            break;
+                        } else if (index-1 > 0) {
+                            elementSibling = parent.childrenPtr[index-1].get().nodeType == NodeType.Element;
+                            break;
+
+                        }
+
+                    }
+
+                    if (doctypeElements != 0 || !elementSibling) {
+                        throw 'HierarchyRequestError';
+
+                    }
+
+                case _:
+
+            }
+
+        }
+
+        var referenceChild = child.nextSibling;
+        if (referenceChild.id == node.id) referenceChild = node.nextSibling;
+        var previousChild = child.previousSibling;
+        
+        node.adopt(parent.ownerDocument);
+        var removedNodes = [];
+        if (child.parentPtr != null) {
+            removedNodes.push(child);
+            parent.childrenPtr.remove(child.id); // TODO: set suppress observers flag.
+        }
+        var nodes = node.nodeType == NodeType.DocumentFragment ? node.childrenPtr : [node.id];
+        node.insert(parent, referenceChild, true);
+        // TODO: step 15
+        return child;
+    }
+
+    /**
+        @see https://dom.spec.whatwg.org/#concept-node-adopt
+    **/
+    public static function adopt(node:Node, document:Document) {
+        var oldDocument = node.ownerDocument;
+        if (node.parent != null) document.tree.removeEdge(node.parent, node);
+        if (document.id != oldDocument.id) {
+            node.ownerDocument = document;
+            for (descendant in node.childNodes) {
+                descendant.ownerDocument = document;
+                if (descendant.nodeType == NodeType.Element) {
+                    for (attr in (cast descendant:Element).attributes) {
+                        attr.ownerDocument = document;
+
+                    }
+
+                }
+
+            }
+
+            // TODO handle custom elements
+            // TODO handle shadow dom descendants
+
+        }
+
     }
 
 }

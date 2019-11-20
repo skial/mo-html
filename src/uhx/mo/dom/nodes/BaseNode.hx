@@ -168,7 +168,7 @@ class BaseNode implements Node {
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-haschildnodes
-    public function hasChildNodes():Bool {
+    public inline function hasChildNodes():Bool {
         return childrenPtr.length > 0;
     }
 
@@ -209,7 +209,7 @@ class BaseNode implements Node {
     // @see https://dom.spec.whatwg.org/#dom-node-contains
     public function contains(?other:Node):Bool {
         if (other == null) return false;
-        return false;
+        return other.isInclusiveDescendantOf(this);
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-lookupprefix
@@ -228,18 +228,18 @@ class BaseNode implements Node {
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-insertbefore
-    public function insertBefore(node:Node, ?child:Node):Node {
-        return this;
+    public inline function insertBefore(node:Node, ?child:Node):Node {
+        return node.preInsertNode(this, child);
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-appendchild
-    public function appendChild(node:Node):Node {
+    public inline function appendChild(node:Node):Node {
         return node.append(this);
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-replacechild
-    public function replaceChild(node:Node, child:Node):Node {
-        return this;
+    public inline function replaceChild(node:Node, child:Node):Node {
+        return child.replace(node, this);
     }
 
     // @see https://dom.spec.whatwg.org/#dom-node-removechild

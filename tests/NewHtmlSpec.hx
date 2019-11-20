@@ -1,5 +1,6 @@
 package ;
 
+import uhx.mo.dom.nodes.NodeType;
 import uhx.mo.html.tree.NodePtr;
 import haxe.CallStack;
 import haxe.io.Eof;
@@ -33,6 +34,7 @@ class NewHtmlSpec {
 
 	private function loop(nodePtr:NodePtr) {
 		var node = nodePtr.get();
+		if (node.nodeType == NodeType.Text) return;
 		trace( nodePtr, node.nodeName, node.nodeValue );
 		for (ptr in node.childrenPtr) {
 			loop(ptr);

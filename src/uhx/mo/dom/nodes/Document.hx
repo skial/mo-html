@@ -163,7 +163,7 @@ class Document extends BaseNode {
     public function adoptNode(node:Node):Node {
         if (node.nodeType == NodeType.Document) throw 'NotSupportedError';
         // TODO handle shadow root.
-        DocumentUtil.adopt(node, this);
+        node.adopt(this);
         return node;
     }
 
@@ -196,31 +196,6 @@ class DocumentUtil {
         }
 
         return null;
-    }
-
-    // @see https://dom.spec.whatwg.org/#concept-node-adopt
-    public static function adopt(node:Node, document:Document) {
-        var oldDocument = node.ownerDocument;
-        if (node.parent != null) document.tree.removeEdge(node.parent, node);
-        if (document.id != oldDocument.id) {
-            node.ownerDocument = document;
-            for (descendant in node.childNodes) {
-                descendant.ownerDocument = document;
-                if (descendant.nodeType == NodeType.Element) {
-                    for (attr in (cast descendant:Element).attributes) {
-                        attr.ownerDocument = document;
-
-                    }
-
-                }
-
-            }
-
-            // TODO handle custom elements
-            // TODO handle shadow dom descendants
-
-        }
-
     }
 
 }
