@@ -39,9 +39,9 @@
 #
 #--next
 
--D JSTACK_NO_SHUTDOWN
--lib hxnodejs
--js bin/html.node.js
+#-D JSTACK_NO_SHUTDOWN
+#-lib hxnodejs
+#-js bin/html.node.js
 
 #--next
 #
@@ -67,6 +67,6 @@
 #-D php7
 #-php bin/php
 
---next
+#--next
 
 --interp

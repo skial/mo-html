@@ -6,6 +6,9 @@ import uhx.mo.html.tree.NodePtr;
 // @:see https://dom.spec.whatwg.org/#processinginstruction
 class ProcessingInstruction extends BaseNode {
 
+    public var data:String;
+    public var target:String;
+
     public function new() {
         this.nodeName = '';
         this.nodeType = NodeType.ProcessingInstruction;
@@ -31,8 +34,5 @@ class ProcessingInstruction extends BaseNode {
     private override function get_length() {
         return data.length;
     }
-
-    public var data:String;
-    public var target:String;
 
 }

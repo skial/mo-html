@@ -25,10 +25,6 @@ class Element extends BaseNode {
         return NodeType.Element;
     }
 
-    private override function get_nodeValue():Null<String> {
-        return null;
-    }
-
     // Element
     // @see https://dom.spec.whatwg.org/#element
 
@@ -36,7 +32,7 @@ class Element extends BaseNode {
     public var prefix(get, null):Null<String>;
     public var localName(default, null):String = '';
     public var tagName(get, null):String;
-    public var attributes(get, null):NamedNodeMap;
+    public var attributes(default, null):NamedNodeMap;
 
     private inline function get_namespaceURI():Null<String> {
         return this.namespaceURI;
@@ -48,10 +44,6 @@ class Element extends BaseNode {
 
     private inline function get_tagName():String {
         return HTMLUppercasedQualifiedName();
-    }
-
-    private inline function get_attributes():NamedNodeMap {
-        return this.attributes;
     }
 
     /**

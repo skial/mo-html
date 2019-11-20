@@ -276,6 +276,8 @@ class Construction {
 
         }
 
+        // TODO: check if node is a `template` element.
+
         return { node:target, pos:pos };
     }
 
@@ -307,14 +309,17 @@ class Construction {
         if (adjustedInsertionLocation.node.get().nodeType == NodeType.Document) return;
         var pos = adjustedInsertionLocation.pos;
         var parent = adjustedInsertionLocation.node.get();
-        var prev = if (pos-1 > 0 && parent.hasChildNodes()) {
-            parent.childrenPtr[pos-1].get();
-        } else {
-            null;
-        }
+        //trace( pos, parent );
+        var prev = (pos-1 > 0 && parent.hasChildNodes()) 
+            ? parent.childrenPtr[pos-1].get()
+            : null;
         
-        if (pos > 0 && prev != null && prev.nodeType == NodeType.Text) {
-            prev.nodeValue += data;
+        if (prev != null && prev.nodeType == NodeType.Text) {
+            /**
+                TODO: investigate 
+                `+=` op messes up `replaceData` in `Text:set_nodeValue`.
+            **/
+            prev.nodeValue = data;
 
         } else {
             var text = new Text(data, parent.ownerDocument);

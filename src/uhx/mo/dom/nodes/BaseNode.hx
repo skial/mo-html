@@ -124,7 +124,6 @@ class BaseNode implements Node {
 
     private function set_nodeValue(v) {
         if (v == null) v = '';
-        // TODO
         return nodeValue;
     }
 

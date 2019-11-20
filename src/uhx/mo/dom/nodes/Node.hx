@@ -457,4 +457,26 @@ class NodeUtil {
         return preInsertNode(node, parent, null);
     }
 
+    /**
+        @see https://dom.spec.whatwg.org/#concept-cd-replace
+    **/
+    public static function replaceData<T:{data:String}&Node>(node:T, offset:Int, count:Int, value:String):Void {
+        var length = node.length-1;
+        if (offset > length) throw 'IndexSizeError';
+        if (offset + count > length) count = length - offset;
+        // TODO: step 4
+        var nodeData = node.data;
+        if (offset <= length) {
+            nodeData += value;
+
+        } else {
+            nodeData = nodeData.substring(0, offset+1) + value;
+
+        }
+        // Skip? Step 6 & 7 // Do we need to do this if the above is enough?
+        // TODO: step 8-11
+        // TODO: step 13
+        node.data = nodeData;
+    }
+
 }
