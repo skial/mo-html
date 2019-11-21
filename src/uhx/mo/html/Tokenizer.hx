@@ -47,15 +47,6 @@ class Tokenizer extends Lexer {
     **/
     public var insertionMode:InsertionMode = Initial;
 
-    /**
-        Initially, the stack of open elements is empty. The stack grows downwards; 
-        the topmost node on the stack is the first one added to the stack, and 
-        the bottommost node of the stack is the most recently added node in the 
-        stack (notwithstanding when the stack is manipulated in a random access 
-        fashion as part of the handling for misnested tags).
-        ---
-        @see https://html.spec.whatwg.org/multipage/parsing.html#stack-of-open-elements
-    **/
     public var backlog:Array<Tokens> = [];
     public var lastToken:Null<HtmlTokens> = null;
     /**
@@ -129,11 +120,19 @@ class Tokenizer extends Lexer {
         emitToken( Keyword(Character({data:value})) );
     }
 
-    public inline function flushAsCharacterReference() {
-       emitToken( Keyword(Character({data:temporaryBuffer})) );
+    public inline function emitHtmlToken(value:HtmlTokens):Void {
+        lastToken = currentToken.match(StartTag(_)) ? currentToken : null;
+        emitToken( Keyword(value) );
     }
 
-    public function isAppropiateEndTag():Bool {
+    public inline function flushAsCharacterReference() {
+        emitToken( Keyword(Character({data:temporaryBuffer})) );
+    }
+
+    /**
+        @see https://html.spec.whatwg.org/multipage/parsing.html#appropriate-end-tag-token
+    **/
+    public function isAppropriateEndTag():Bool {
 		if (lastToken != null) return switch [lastToken, currentToken] {
 			case [StartTag({name:s}), EndTag({name:e})]: s == e;
 			case _: false;

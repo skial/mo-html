@@ -34,7 +34,7 @@ class NewHtmlSpec {
 
 	private function loop(nodePtr:NodePtr) {
 		var node = nodePtr.get();
-		if (node.nodeType == NodeType.Text) return;
+		//if (node.nodeType == NodeType.Text) return;
 		trace( nodePtr, node.nodeName, node.nodeValue );
 		for (ptr in node.childrenPtr) {
 			loop(ptr);

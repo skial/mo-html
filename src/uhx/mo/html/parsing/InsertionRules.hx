@@ -486,13 +486,13 @@ class InsertionRules {
     **/
     public function beforeHtml(token:Token<HtmlTokens>, maker:Construction) {
         switch token {
-            case Keyword(DOCTYPE(obj)):
+            case Keyword(DOCTYPE(_)):
                 maker.handleParseError('Parse error. Ignore the token.');
 
-            case Keyword(Comment(obj)):
+            case Keyword(Comment({data:value})):
                 // Insert a comment as the last child of the Document object.
                 //maker.insertComment(obj.data, maker.document.length - 1);
-                var comment = new Comment(obj.data);
+                var comment = new Comment(value);
                 comment.id = maker.tree.addVertex( comment );
                 maker.document.childrenPtr.push( comment.id );
 
@@ -537,10 +537,10 @@ class InsertionRules {
             case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
                 // Ignore the token.
 
-            case Keyword(Comment(obj)):
-                maker.insertComment(obj.data);
+            case Keyword(Comment({data:value})):
+                maker.insertComment(value);
 
-            case Keyword(DOCTYPE(obj)):
+            case Keyword(DOCTYPE(_)):
                 maker.handleParseError('Parse error. Ignore the token.');
 
             case Keyword(StartTag(tag)) if (tag.name == 'html'):

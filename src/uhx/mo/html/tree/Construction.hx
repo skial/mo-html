@@ -80,7 +80,7 @@ class Construction {
         tree = new Tree();
         document = new Document(tree);
         if (context == null) {
-            tree.addVertex( document );
+            //tree.addVertex( document );
             insertionRules = new InsertionRules();
             tokenizer = new Tokenizer(bytes, 'html-parser::${document.id}::');
 
@@ -272,7 +272,7 @@ class Construction {
             throw 'Not Implemented';
 
         } else {
-            target.childrenPtr.length > 1 ? (target.childrenPtr.length - 1) : 0;
+            target.childrenPtr.length;
 
         }
 
@@ -349,12 +349,12 @@ class Construction {
     **/
     public function insertForeignContent(tag:Tag, namespace:String):Element {
         var adjustedInsertionLocation = appropriateInsertionPoint();
-        var element = createAnElementForToken(tag, namespace, currentNode);
+        var element = createAnElementForToken(tag, namespace, adjustedInsertionLocation.node);
 
         // TODO: fully implement step 3.
         adjustedInsertionLocation.insert(element.id);
         element.parentPtr = adjustedInsertionLocation.node;
-
+        
         openElements.push( element.id );
         return element;
     }

@@ -97,7 +97,7 @@ class Rules implements uhx.mo.RulesCache {
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rcdata-end-tag-name-state
 	public static var rcdata_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
 
 			} else {
@@ -109,7 +109,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'/' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( self_closing_start_tag_state );
 
 			} else {
@@ -121,8 +121,8 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'>' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
-				lexer.emitToken( Keyword(lexer.currentToken) );
+			if (lexer.isAppropriateEndTag()) {
+				lexer.emitHtmlToken( lexer.currentToken );
 				lexer.tokenize( data_state );
 
 			} else {
@@ -210,7 +210,7 @@ class Rules implements uhx.mo.RulesCache {
     // @see https://html.spec.whatwg.org/multipage/parsing.html#rawtext-end-tag-name-state
 	public static var rawtext_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
 
 			} else {
@@ -222,7 +222,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'/' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( self_closing_start_tag_state );
 
 			} else {
@@ -234,7 +234,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'>' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.emitToken( Keyword( lexer.currentToken ) );
 				lexer.tokenize( data_state );
 
@@ -586,7 +586,7 @@ class Rules implements uhx.mo.RulesCache {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.selfClosing = true;
-					lexer.emitToken( Keyword(lexer.currentToken) );
+					lexer.emitHtmlToken( lexer.currentToken );
 
 				case x:
 					trace( x );
@@ -611,7 +611,7 @@ class Rules implements uhx.mo.RulesCache {
 		'\u002D' => lexer -> lexer.tokenize( comment_start_dash_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'.' => lexer -> lexer.reconsume( comment_state ),
@@ -622,12 +622,12 @@ class Rules implements uhx.mo.RulesCache {
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( AbruptClosingOfEmptyComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -670,7 +670,7 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -740,7 +740,7 @@ class Rules implements uhx.mo.RulesCache {
 		'\u002D' => lexer -> lexer.tokenize( comment_end_state ),
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -759,7 +759,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#comment-end-state
 	public static var comment_end_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'!' => lexer -> lexer.tokenize( comment_end_bang_state ),
@@ -776,7 +776,7 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -807,12 +807,12 @@ class Rules implements uhx.mo.RulesCache {
 		},
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( IncorrectlyClosedComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInComment(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -831,11 +831,11 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-comment-state
 	public static var bogus_comment_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		NULL => lexer -> {
@@ -1038,7 +1038,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( character_reference_state );
 		},
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		NUL => lexer -> {
@@ -1123,7 +1123,7 @@ class Rules implements uhx.mo.RulesCache {
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'=' => lexer -> lexer.tokenize( before_attribute_value_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1150,7 +1150,7 @@ class Rules implements uhx.mo.RulesCache {
 		'\u0027' => lexer -> lexer.tokenize( attribute_value_single_quoted_state ),
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( MissingAttributeValue(lexer.curPos()) ) ) );
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'.' => lexer -> lexer.reconsume( attribute_value_unquoted_state ),
@@ -1161,7 +1161,7 @@ class Rules implements uhx.mo.RulesCache {
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1223,7 +1223,7 @@ class Rules implements uhx.mo.RulesCache {
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1236,7 +1236,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var doctype_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_name_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'[A-Z]' => lexer -> {
@@ -1271,7 +1271,7 @@ class Rules implements uhx.mo.RulesCache {
 				case x:
 					trace( x );
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1312,7 +1312,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1325,7 +1325,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1366,7 +1366,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1379,7 +1379,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1420,7 +1420,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1433,7 +1433,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1474,7 +1474,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1487,7 +1487,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1521,13 +1521,13 @@ class Rules implements uhx.mo.RulesCache {
 		'>' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( MissingDoctypeName(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofInDoctype(lexer.curPos()) ) ) );
 			lexer.currentToken = DOCTYPE({forceQuirks:true});
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1543,7 +1543,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var after_doctype_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_name_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1557,7 +1557,7 @@ class Rules implements uhx.mo.RulesCache {
 
 			}
 
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		/** see Anything else section **/
@@ -1618,7 +1618,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1631,7 +1631,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1683,7 +1683,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1696,7 +1696,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1717,7 +1717,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var after_doctype_public_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( between_doctype_public_and_system_identifiers_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'"' => lexer -> {
@@ -1754,7 +1754,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1807,7 +1807,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1861,7 +1861,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1874,7 +1874,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1926,7 +1926,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1939,7 +1939,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1960,7 +1960,7 @@ class Rules implements uhx.mo.RulesCache {
 	public static var after_doctype_system_identifier_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( after_doctype_system_identifier_state ),
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		'' => lexer -> {
@@ -1973,7 +1973,7 @@ class Rules implements uhx.mo.RulesCache {
 					trace( x );
 
 			}
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> {
@@ -1985,7 +1985,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#bogus-doctype-state
 	public static var bogus_doctype_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'>' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			lexer.tokenize( data_state );
 		},
 		NUL => lexer -> {
@@ -1993,7 +1993,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.tokenize( bogus_doctype_state );
 		},
 		'' => lexer -> {
-			lexer.emitToken( Keyword(lexer.currentToken) );
+			lexer.emitHtmlToken( lexer.currentToken );
 			EOF;
 		},
 		'.' => lexer -> lexer.tokenize( bogus_doctype_state ),
@@ -2047,7 +2047,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-end-tag-name-state
 	public static var script_data_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
 
 			} else {
@@ -2059,7 +2059,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'/' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( self_closing_start_tag_state );
 
 			} else {
@@ -2071,7 +2071,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'>' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( data_state );
 
 			} else {
@@ -2242,7 +2242,7 @@ class Rules implements uhx.mo.RulesCache {
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#script-data-escaped-end-tag-name-state
 	public static var script_data_escaped_end_tag_name_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[\t\n\u000C ]' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( before_attribute_name_state );
 
 			} else {
@@ -2254,7 +2254,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'/' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( self_closing_start_tag_state );
 				
 			} else {
@@ -2266,7 +2266,7 @@ class Rules implements uhx.mo.RulesCache {
 			}
 		},
 		'>' => lexer -> {
-			if (lexer.isAppropiateEndTag()) {
+			if (lexer.isAppropriateEndTag()) {
 				lexer.tokenize( data_state );
 				
 			} else {
