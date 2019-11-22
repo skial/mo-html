@@ -24,10 +24,13 @@ class NewHtmlSpec {
 
 	public function new() {
 		paragraphs = haxe.Resource.getString('be_paragraph.html');
+		testSimple();
+		testSimpleNested();
 	}
 	
-	private function parse(html:String) {
-		var maker = uhx.mo.html.tree.Construction.make( ByteData.ofString( html ) );
+	private function parse(html:String, force:Bool = false) {
+		trace( html );
+		var maker = uhx.mo.html.tree.Construction.make( ByteData.ofString( html ), force );
 		maker.parse();
 		return maker;
 	}
@@ -41,7 +44,22 @@ class NewHtmlSpec {
 		}
 	}
 
-	public function testFoo() {
+	public function testSimple() {
+		var value = '<p>Hello world</p>';
+		var maker = parse(value, true);
+		var document = maker.document;
+		for (ptr in document.childrenPtr) loop(ptr);
+		
+	}
+
+	public function testSimpleNested() {
+		var value = '<p>Hello <em>Haxe</em> world</p>';
+		var maker = parse(value, true);
+		var document = maker.document;
+		for (ptr in document.childrenPtr) loop(ptr);
+	}
+
+	/**public function testFoo() {
 		var maker = parse(paragraphs);
 		trace( maker.tree.vertices );
 		var document = maker.document;

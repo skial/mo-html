@@ -1,5 +1,6 @@
 package uhx.mo.html.parsing;
 
+import uhx.mo.html.flags.DocumentFlags;
 import uhx.mo.dom.Tree;
 import uhx.mo.dom.nodes.Node;
 import uhx.mo.dom.nodes.Attr;
@@ -313,7 +314,7 @@ class InsertionRules {
     }
 
     public inline function process(token:Token<HtmlTokens>, maker:Construction):Void {
-        trace( insertionMode );
+        /*trace( insertionMode );
         trace( token );
         /*trace( selection[insertionMode] );*/
         selection[insertionMode](token, maker);
@@ -1211,7 +1212,8 @@ class InsertionRules {
 
             case Keyword(StartTag(tag)) if (["b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt", "u"].indexOf(tag.name) > -1):
                 maker.activeFormattingElements.reconstruct();
-                maker.activeFormattingElements.push( maker.insertHtmlElement(tag) );
+                var element = maker.insertHtmlElement(tag);
+                maker.activeFormattingElements.push( element );
 
             case Keyword(StartTag(tag)) if (tag.name == 'nobr'):
                 maker.activeFormattingElements.reconstruct();
@@ -2358,34 +2360,111 @@ class InsertionRules {
         switch token {
             case Keyword(Character({data:'\u0000'})):
                 maker.handleParseError('Parse error.');
-                // TODO: insert replacement character.
+                maker.tokenizer.emitString('\uFFFD');
 
             case Keyword(Character({data:char})) if (['\u0009', '\u000A', '\u000C', '\u000D', '\u0020'].indexOf(char) > -1):
                 maker.insertCharacter(char);
-                // TODO: set frameset-ok `not ok`.
 
             case Keyword(Character({data:char})):
                 maker.insertCharacter(char);
+                // TODO: set frameset-ok `not ok`.
+
+            case Keyword(Comment({data:value})):
+                maker.insertComment(value);
 
             case Keyword(DOCTYPE(_)):
                 maker.handleParseError('Parse error.');
 
             case Keyword(StartTag(tag)) if (["b", "big", "blockquote", "body", "br", "center", "code", "dd", "div", "dl", "dt", "em", "embed", "h1", "h2", "h3", "h4", "h5", "h6", "head", "hr", "i", "img", "li", "listing", "menu", "meta", "nobr", "ol", "p", "pre", "ruby", "s", "small", "span", "strong", "strike", "sub", "sup", "table", "tt", "u", "ul", "var"].indexOf(tag.name) > -1):
                 maker.handleParseError('Parse error.');
-                // Check if the parser is created as part of the html fragment parsing algo.
-                // TODO: case
+
+                if (maker.document.flags.isSet(DocumentFlags.FragmentCase)) {
+                    trace ('FRAGMENT CASE');
+                    // TODO: same as any other start tag.
+                    var namespace = Namespaces.HTML; // TODO: this depends on the adjusted current node's namespace.
+                    maker.insertForeignContent(tag, namespace);
+
+                    if (tag.selfClosing) {
+                        // TODO: if script and svg namespace
+                        // else:
+                        maker.openElements.pop();
+                        // TODO: acknowledge self closing flag.
+                    }
+
+                } else {
+                    maker.openElements.pop();
+                    while (
+                        maker.openElements.length > 0 && 
+                        // TODO: implement these two methods
+                        (/*!maker.isMathMLTextIntegrationPoint() || 
+                        !maker.isHtmlIntegrationPoint() ||*/ 
+                        maker.currentNode.nodeType != NodeType.Element)
+                    ) {
+                        maker.openElements.pop();
+                    }
+
+                    process(token, maker);
+
+                }
 
             case Keyword(StartTag(tag)) if (tag.name == 'font' && tag.attributes.filter(a -> ['color', 'face', 'size'].indexOf(a.name) > -1).length > 0):
-                // TODO: copy preview case body.
+                // TODO: copy previous case body.
+                maker.handleParseError('Parse error.');
+
+                if (!maker.document.flags.isSet(DocumentFlags.FragmentCase)) {
+                    maker.openElements.pop();
+                    while (
+                        maker.openElements.length > 0 && 
+                        // TODO: implement these two methods
+                        (/*!maker.isMathMLTextIntegrationPoint() || 
+                        !maker.isHtmlIntegrationPoint() ||*/ 
+                        maker.currentNode.nodeType != NodeType.Element)
+                    ) {
+                        maker.openElements.pop();
+                    }
+
+                    process(token, maker);
+
+                } else {
+                    trace ('FRAGMENT CASE');
+                    // TODO: same as any other start tag.
+                    var namespace = Namespaces.HTML; // TODO: this depends on the adjusted current node's namespace.
+                    maker.insertForeignContent(tag, namespace);
+
+                    if (tag.selfClosing) {
+                        // TODO: if script and svg namespace
+                        // else:
+                        maker.openElements.pop();
+                        // TODO: acknowledge self closing flag.
+                    }
+
+                }
 
             case Keyword(StartTag(tag)):
-                // TODO:
+                /*if (maker.adjustedCurrentNode.isInMathMLNamespace()) {
+                    // TODO:
+                }*/
+
+                /*if (maker.adjustedCurrentNode.isInSvgNamespace()) {
+                    // TODO:
+                }*/
+
+                var namespace = Namespaces.HTML; // TODO: this depends on the adjusted current node's namespace.
+                maker.insertForeignContent(tag, namespace);
+
+                if (tag.selfClosing) {
+                    // TODO: if script and svg namespace
+                    // else:
+                    maker.openElements.pop();
+                    // TODO: acknowledge self closing flag.
+                }
 
             case Keyword(EndTag(tag)) if (tag.name == 'script' /**TODO: && maker.currentNode is a svg script element**/):
 
             case Keyword(EndTag(tag)):
                 var index = maker.openElements.length - 1;
                 var node = maker.openElements[index].get();
+                trace( node, tag, maker.openElements.map( n->n.get().nodeName) );
                 if (node.nodeName.toLowerCase() != tag.name) {
                     maker.handleParseError('Parse error.');
 
@@ -2406,6 +2485,8 @@ class InsertionRules {
 
                     } else {
                         process(token, maker);
+                        // TODO: Im assuming it should end here...
+                        return;
 
                     }
                 }

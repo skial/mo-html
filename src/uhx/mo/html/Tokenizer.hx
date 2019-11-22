@@ -85,6 +85,17 @@ class Tokenizer extends Lexer {
     }
 
     /**
+        Not part of the spec.
+    **/
+    public var currentState(get, null):HtmlRules;
+
+    private inline function get_currentState():HtmlRules {
+        return (backpressure.length > 0) 
+            ? backpressure.shift() 
+            : uhx.mo.html.rules.Rules.data_state;
+    }
+
+    /**
         The exact behavior of certain states depends on the 
         insertion mode and the stack of open elements. Certain states 
         also use a temporary buffer to track progress, and the character 
@@ -99,17 +110,32 @@ class Tokenizer extends Lexer {
     }
 
     public function tokenize(ruleset:HtmlRules):Token<HtmlTokens> {
+        trace( 'backlog::${backlog.length}', 'backpressure::${backpressure.length}' );
         //trace( this.current );
         if (backlog.length > 0) {
 			backpressure.push( ruleset );
 			return backlog.shift();
 		}
+        trace( 'backlog::${backlog.length}', 'backpressure::${backpressure.length}' );
 		if (backpressure.length > 0) {
-            var rule = backpressure.shift();
-			return super.token(rule);
+            trace( 'incoming rule::${ruleset.name}', 'current rules::${backpressure.map( r -> r.name )}' );
+            backpressure.push( ruleset );
+            //var rule = backpressure.shift();
+			//return super.token(rule);
+            ruleset = backpressure.shift();
+            //trace( ruleset );
 		}
-		// Might need to capture result. Check backlog before returning or store into backlog?
-		return super.token(ruleset);
+		trace( ruleset.name );
+		var result = super.token(ruleset);
+
+        return if (backlog.length == 0) {
+            result;
+
+        } else {
+            backlog.push( result );
+            backlog.shift();
+
+        }
     }
 
     public inline function emitToken(value:Token<HtmlTokens>):Void {

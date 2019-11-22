@@ -13,7 +13,7 @@ class Main {
         /*Runner.run(TestBatch.make([
             new NewHtmlSpec().testFoo(),
         ])).handle( Runner.exit );*/
-        new NewHtmlSpec().testFoo();
+        new NewHtmlSpec();
     }
 
 }

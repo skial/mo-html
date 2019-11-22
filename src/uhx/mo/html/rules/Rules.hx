@@ -19,7 +19,9 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.returnState = data_state;
 			lexer.tokenize( character_reference_state );
 		},
-		'<' => lexer -> lexer.tokenize( tag_open_state ),
+		'<' => lexer -> {
+			lexer.tokenize( tag_open_state );
+		},
 		NUL => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedNullCharacter(lexer.curPos()) ) ) );
 			Keyword(Character({data:lexer.currentInputCharacter}));
@@ -42,7 +44,7 @@ class Rules implements uhx.mo.RulesCache {
 			EOF;
 		},
 		'.' => lexer -> {
-			Keyword(Character({data:lexer.current}));
+			Keyword(Character({data:lexer.currentInputCharacter}));
 		},
 	] );
 
@@ -302,12 +304,16 @@ class Rules implements uhx.mo.RulesCache {
     // @see https://html.spec.whatwg.org/multipage/parsing.html#named-character-reference-state
 	public static var named_character_reference_state:Ruleset<Tokenizer, Token<HtmlTokens>> = Mo.rules( [
 		'[a-zA-Z0-9]+(;|=|[a-zA-Z0-9])?' => lexer -> {
-			lexer.temporaryBuffer += lexer.current;
+			lexer.temporaryBuffer += lexer.currentInputCharacter;
 
 			if (uhx.sys.HtmlEntity.has(lexer.temporaryBuffer)) {
 				var partOfAttribute = lexer.isPartOfAttribute();
+				var match = partOfAttribute && 
+					!StringTools.endsWith(lexer.currentInputCharacter, ';') &&
+					~/=|[a-zA-Z0-9]/g.match(lexer.nextInputCharacter);
 
-				if (partOfAttribute && !StringTools.endsWith(lexer.current, ';') && ~/=|[a-zA-Z0-9]/g.match(lexer.current.charAt(lexer.current.length - 1))) {
+				//if (partOfAttribute && !StringTools.endsWith(lexer.currentInputCharacter, ';') && ~/=|[a-zA-Z0-9]/g.match(lexer.currentInputCharacter.charAt(lexer.currentInputCharacter.length - 1))) {
+				if (match) {
 					@:privateAccess lexer.pos--;
 					lexer.flushAsCharacterReference();
 					lexer.tokenize( lexer.returnState );
@@ -487,13 +493,17 @@ class Rules implements uhx.mo.RulesCache {
 
 	// @see https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
     public static var tag_open_state:Ruleset<Tokenizer, Token<HtmlTokens>>= Mo.rules( [
-		'!' => lexer -> lexer.tokenize( markup_declaration_open_state ),
-		'/' => lexer -> lexer.tokenize( end_tag_open_state ),
+		'!' => lexer -> {
+			lexer.tokenize( markup_declaration_open_state );
+		},
+		'/' => lexer -> {
+			lexer.tokenize( end_tag_open_state );
+		},
 		'[a-zA-Z]' => lexer -> {
 			lexer.currentToken = StartTag( makeTag() );
 			lexer.reconsume( tag_name_state );
 		},
-		'?' => lexer -> {
+		'\\?' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( UnexpectedQuestionMarkInsteadOfTagName(lexer.curPos()) ) ) );
 			lexer.currentToken = Comment({data:''});
 			lexer.reconsume( bogus_comment_state );
@@ -501,8 +511,7 @@ class Rules implements uhx.mo.RulesCache {
 		'' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( EofBeforeTagName(lexer.curPos()) ) ) );
 			lexer.emitToken( Keyword( Character({data:'<'}) ) );
-			lexer.emitToken( EOF );
-			lexer.backlog.shift();
+			EOF;
 		},
 		'.' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( InvalidFirstCharacterOfTagName(lexer.curPos()) ) ) );
@@ -525,8 +534,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.emitToken( Keyword( ParseError( EofBeforeTagName(lexer.curPos()) ) ) );
 			lexer.emitString('<');
 			lexer.emitString('/');
-			lexer.emitToken(EOF);
-			lexer.backlog.shift();
+			EOF;
 		},
 		'.' => lexer -> {
 			lexer.emitToken( Keyword( ParseError( InvalidFirstCharacterOfTagName(lexer.curPos()) ) ) );
@@ -540,13 +548,13 @@ class Rules implements uhx.mo.RulesCache {
 		'[\t\n\u000C ]' => lexer -> lexer.tokenize( before_attribute_name_state ),
 		'/' => lexer -> lexer.tokenize( self_closing_start_tag_state ),
 		'>' => lexer -> {
-			lexer.backpressure.push( data_state );
-			Keyword(lexer.lastToken = lexer.currentToken);
+			lexer.emitHtmlToken( lexer.currentToken );
+			lexer.tokenize( data_state );
 		},
 		'[A-Z]' => lexer -> {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
-					data.name += lexer.current.toLowerCase();
+					data.name += lexer.currentInputCharacter.toLowerCase();
 
 				case x:
 					trace( x );
@@ -571,7 +579,7 @@ class Rules implements uhx.mo.RulesCache {
 		'.' => lexer -> {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
-					data.name += lexer.current;
+					data.name += lexer.currentInputCharacter;
 
 				case x:
 					trace( x );
@@ -928,6 +936,7 @@ class Rules implements uhx.mo.RulesCache {
 			lexer.emitToken( Keyword( ParseError( UnexpectedCharacterInAttributeName(lexer.curPos()) ) ) );
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
+					trace( data.attributes );
 					data.attributes[data.attributes.length - 1].name 
 					+= lexer.currentInputCharacter;
 				
@@ -1097,6 +1106,7 @@ class Rules implements uhx.mo.RulesCache {
 						name: lexer.currentInputCharacter, 
 						value: ''
 					} );
+					trace( data.name, data.attributes );
 
 				case x:
 					trace( x );
@@ -1108,6 +1118,7 @@ class Rules implements uhx.mo.RulesCache {
 			switch lexer.currentToken {
 				case StartTag(data) | EndTag(data):
 					data.attributes.push( {name:'', value:''} );
+					trace( data.name, data.attributes );
 
 				case x:
 					trace( x );

@@ -9,6 +9,7 @@ import uhx.mo.html.internal.*;
 import uhx.mo.html.rules.Rules;
 import uhx.mo.infra.Namespaces;
 import uhx.mo.dom.nodes.NodeType;
+import uhx.mo.html.flags.DocumentFlags;
 import uhx.mo.html.parsing.OpenElements;
 import uhx.mo.html.parsing.InsertionRules;
 import uhx.mo.html.parsing.FormattingElements;
@@ -21,8 +22,8 @@ using uhx.mo.html.macros.AbstractTools;
 class Construction {
 
     public static var current:Construction;
-    public static function make(bytes:byte.ByteData, ?force:Bool = false):Construction {
-        if (current == null || force) {
+    public static function make(bytes:byte.ByteData, ?overwrite:Bool = false):Construction {
+        if (current == null || overwrite) {
             current = new Construction(bytes);
         }
         return current;
@@ -85,6 +86,7 @@ class Construction {
             tokenizer = new Tokenizer(bytes, 'html-parser::${document.id}::');
 
         } else {
+            document.flags.set(DocumentFlags.FragmentCase);
             /**
                 HTML fragment parsing algorithm.
                 ---
@@ -149,8 +151,8 @@ class Construction {
             scripts executing and using the dynamic markup insertion APIs to 
             insert characters into the stream being tokenized.)
             **/
-            var token = tokenizer.tokenize( Rules.data_state );
-            //trace( token );
+            var token = tokenizer.tokenize( tokenizer.currentState );
+            trace( token );
             switch token {
                 case Keyword(ParseError(error)): handleParseError(error);
                 case EOF: break;
@@ -267,6 +269,7 @@ class Construction {
     public function appropriateInsertionPoint(?overrideTarget:Node):InsertionLocation {
         var target = overrideTarget == null ? currentNode : overrideTarget;
         var targetIs = ['TABLE', 'TBODY', 'TFOOT', 'THEAD', 'TR'];
+        //trace( openElements, target );
         var pos = if (fosterParenting && targetIs.indexOf( target.nodeName ) > -1) {
             // TODO: implement steps.
             throw 'Not Implemented';
@@ -350,6 +353,7 @@ class Construction {
     public function insertForeignContent(tag:Tag, namespace:String):Element {
         var adjustedInsertionLocation = appropriateInsertionPoint();
         var element = createAnElementForToken(tag, namespace, adjustedInsertionLocation.node);
+        trace( adjustedInsertionLocation.node.get().nodeName, adjustedInsertionLocation.pos );
 
         // TODO: fully implement step 3.
         adjustedInsertionLocation.insert(element.id);
