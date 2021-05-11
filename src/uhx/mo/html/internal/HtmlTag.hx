@@ -1,5 +1,6 @@
 package uhx.mo.html.internal;
 
+// TODO replace with https://github.com/skial/html.element-names
 enum abstract HtmlTag(String) from String to String {
 	public var Base = 'base';
 	public var Link = 'link';

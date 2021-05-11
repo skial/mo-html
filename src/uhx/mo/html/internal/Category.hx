@@ -1,5 +1,6 @@
 package uhx.mo.html.internal;
 
+// TODO use https://github.com/skial/html.content-categories instead.
 // @see http://www.w3.org/html/wg/drafts/html/master/dom.html#content-models
 enum abstract Category(Int) from Int to Int {
 	public var Unknown = -1;
